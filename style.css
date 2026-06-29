@@ -213,58 +213,48 @@ button {
     background: #ff6688; /* Lighter active when playing */
 }
 
-
-.pattern-memory {
-    margin-top: 2rem;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.memory-header {
+.sequencer-layout {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    gap: 1.5rem;
+    align-items: flex-start;
 }
 
-.memory-header h2 {
-    font-size: 1.2rem;
-    font-weight: 600;
-}
-
-.mode-toggle {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.9rem;
-}
-
-.pattern-slots {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.pattern-slot {
-    flex: 1;
-    height: 40px;
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Share Tech Mono', monospace;
+.sequencer-instructions {
+    flex: 0 0 160px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.pattern-slot.has-data {
+.sequencer-instructions h3 {
     color: var(--text-main);
-    border-color: #666;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
 }
 
-.pattern-slot.active {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--text-main);
-    color: white;
+.sequencer-instructions p {
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+.sequencer-instructions p:last-child {
+    margin-bottom: 0;
+}
+
+.sequencer-instructions strong {
+    color: var(--accent-color);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.sequencer-main {
+    flex: 1;
 }

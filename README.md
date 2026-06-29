@@ -7,7 +7,7 @@ A fully functional, web-based software clone of the legendary Roland TB-303 synt
 - **Authentic Signal Flow**: Sawtooth/Square oscillator running through a heavily resonant lowpass filter with custom envelope modulation and decay controls.
 - **Tone.js Audio Engine**: Utilizes Tone.js for high-precision scheduling, DSP effects (distortion/saturation), and perfect sync.
 - **Grid-Style Sequencer**: An intuitive, modern piano-roll grid replacing the archaic original input method while retaining the strict 16-step monophonic behavior.
-- **Pattern Memory**: Save and recall up to 9 patterns on the fly using your keyboard (`1-9`).
+- **Pattern Memory**: Save and recall up to 9 patterns on the fly using the number row on your keyboard (`1-9`).
 - **Expressive Step Controls**: Dedicated programming rows for the legendary 303 Slide and Accent mechanics.
 
 ---

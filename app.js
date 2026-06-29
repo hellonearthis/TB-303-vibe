@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const envModInput = document.getElementById('env-mod');
     const decayInput = document.getElementById('decay');
 
-    // Memory Mode
-    const modeRadios = document.getElementsByName('memory-mode');
-    const patternSlotsDiv = document.getElementById('pattern-slots');
+
 
     // --- Build Grid UI ---
     function renderGrid() {
@@ -118,58 +116,24 @@ document.addEventListener('DOMContentLoaded', () => {
         gridContainer.appendChild(ghostRow);
     }
 
-    // --- Build Pattern Memory UI ---
-    function renderPatternSlots() {
-        patternSlotsDiv.innerHTML = '';
-        for (let i = 1; i <= 9; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'pattern-slot';
-            slot.textContent = i;
-            if (seq.patterns[i]) {
-                slot.classList.add('has-data');
-            }
-            
-            slot.addEventListener('click', () => {
-                handleMemoryAction(i);
-            });
-            
-            patternSlotsDiv.appendChild(slot);
-        }
-    }
-
-    function getMemoryMode() {
-        for (let radio of modeRadios) {
-            if (radio.checked) return radio.value;
-        }
-        return 'recall';
-    }
-
-    function handleMemoryAction(slotKey) {
-        const mode = getMemoryMode();
-        if (mode === 'save') {
-            seq.savePattern(slotKey);
-        } else {
-            if (seq.recallPattern(slotKey)) {
-                renderGrid();
-            }
-        }
-        renderPatternSlots();
-    }
-
     // --- Keyboard Shortcuts (1-9) ---
     window.addEventListener('keydown', (e) => {
-        // Ignore if user is typing in an input
-        if (e.target.tagName === 'INPUT') return;
+        // Ignore if user is typing in a text/number input (but allow if they are on a range slider)
+        if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
 
-        const key = parseInt(e.key);
-        if (key >= 1 && key <= 9) {
-            handleMemoryAction(key);
-            
-            // Highlight slot briefly
-            const slots = patternSlotsDiv.children;
-            if(slots[key-1]) {
-                slots[key-1].classList.add('active');
-                setTimeout(() => slots[key-1].classList.remove('active'), 200);
+        if (e.code && e.code.startsWith('Digit')) {
+            // e.key might be '!' if shift is pressed, so extract number from e.code
+            const key = parseInt(e.code.replace('Digit', ''));
+            if (key >= 1 && key <= 9) {
+                if (e.shiftKey) {
+                    // Save pattern
+                    seq.savePattern(key);
+                } else {
+                    // Recall pattern
+                    if (seq.recallPattern(key)) {
+                        renderGrid();
+                    }
+                }
             }
         }
     });
@@ -230,5 +194,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Init
     renderGrid();
-    renderPatternSlots();
 });
