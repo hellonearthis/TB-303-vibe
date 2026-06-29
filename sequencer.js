@@ -13,6 +13,86 @@ class Sequencer {
 
         this.patterns = {}; // Memory slots 1-9
         
+        // Default Pattern 4
+        this.patterns[4] = [
+            { note: 'C3', slide: false, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'G3', slide: false, accent: false, ghost: false },
+            { note: 'C4', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'F3', slide: false, accent: false, ghost: false },
+            { note: 'F#3', slide: true, accent: false, ghost: false },
+            { note: 'G3', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'A#3', slide: false, accent: true, ghost: false },
+            { note: 'G3', slide: false, accent: false, ghost: true },
+            { note: 'C4', slide: true, accent: true, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'D#3', slide: true, accent: false, ghost: false },
+            { note: 'F3', slide: false, accent: true, ghost: false }
+        ];
+        
+        // Default Pattern 1
+        this.patterns[1] = [
+            { note: 'C3', slide: false, accent: true, ghost: false },
+            { note: 'C3', slide: true, accent: false, ghost: false },
+            { note: 'C4', slide: false, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'D#3', slide: false, accent: false, ghost: true },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'G3', slide: true, accent: false, ghost: false },
+            { note: 'A#3', slide: false, accent: true, ghost: false },
+            { note: 'C4', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'G#3', slide: false, accent: false, ghost: false },
+            { note: 'G3', slide: true, accent: false, ghost: false },
+            { note: 'F3', slide: false, accent: true, ghost: false },
+            { note: 'D#3', slide: false, accent: false, ghost: false },
+            { note: 'D3', slide: false, accent: false, ghost: true },
+            { note: null, slide: false, accent: false, ghost: false }
+        ];
+        
+        // Default Pattern 2
+        this.patterns[2] = [
+            { note: 'C3', slide: true, accent: true, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: true },
+            { note: 'C4', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: true },
+            { note: 'D#3', slide: false, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'C3', slide: true, accent: true, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: 'F3', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'D3', slide: false, accent: false, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: true },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'G3', slide: false, accent: true, ghost: false }
+        ];
+        
+        // Default Pattern 3
+        this.patterns[3] = [
+            { note: 'C3', slide: true, accent: true, ghost: false },
+            { note: 'C#3', slide: false, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: true },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: 'G3', slide: true, accent: true, ghost: false },
+            { note: null, slide: false, accent: false, ghost: false },
+            { note: 'C#3', slide: true, accent: false, ghost: false },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: true },
+            { note: 'A#3', slide: false, accent: true, ghost: false },
+            { note: 'G#3', slide: true, accent: false, ghost: false },
+            { note: 'G3', slide: false, accent: false, ghost: false },
+            { note: 'C#3', slide: true, accent: false, ghost: false },
+            { note: null, slide: false, accent: false, ghost: true },
+            { note: 'C3', slide: false, accent: false, ghost: false },
+            { note: 'C4', slide: false, accent: true, ghost: false }
+        ];
+        
         this.isPlaying = false;
         this.currentStep = 0;
         
@@ -34,19 +114,22 @@ class Sequencer {
         
         const stepData = this.grid[stepIndex];
         
+        const prevStepIndex = stepIndex === 0 ? this.steps - 1 : stepIndex - 1;
+        const prevStep = this.grid[prevStepIndex];
+        const prevSlide = prevStep.note !== null && prevStep.slide;
+        
         // Calculate 16th note duration for portamento/release timing
         const stepDuration = Tone.Time("16n").toSeconds();
 
-        if (stepData.note) {
-            window.AudioEngine.playStep(
-                stepData.note, 
-                time, 
-                stepData.slide, 
-                stepData.accent, 
-                stepData.ghost,
-                stepDuration
-            );
-        }
+        window.AudioEngine.playStep(
+            stepData.note, 
+            time, 
+            stepData.slide, 
+            stepData.accent, 
+            stepData.ghost,
+            stepDuration,
+            prevSlide
+        );
 
         // Trigger UI update using Tone.Draw to sync visually with audio time
         if (this.uiCallback) {

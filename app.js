@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const resInput = document.getElementById('resonance');
     const envModInput = document.getElementById('env-mod');
     const decayInput = document.getElementById('decay');
+    const accentInput = document.getElementById('accent-amount');
+    
+    // Pedals
+    const pedalOverdrive = document.getElementById('pedal-overdrive');
+    const pedalDelay = document.getElementById('pedal-delay');
+    const pedalPhaser = document.getElementById('pedal-phaser');
 
 
 
@@ -118,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Keyboard Shortcuts (1-9) ---
     window.addEventListener('keydown', (e) => {
-        // Ignore if user is typing in a text/number input (but allow if they are on a range slider)
-        if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
+        // Ignore if user is typing in a text/number input (but allow if they are on a range slider or checkbox)
+        if (e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) return;
 
         if (e.code && e.code.startsWith('Digit')) {
             // e.key might be '!' if shift is pressed, so extract number from e.code
@@ -191,6 +197,12 @@ document.addEventListener('DOMContentLoaded', () => {
     resInput.addEventListener('input', (e) => audio.setParam('resonance', parseFloat(e.target.value)));
     envModInput.addEventListener('input', (e) => audio.setParam('envMod', parseFloat(e.target.value)));
     decayInput.addEventListener('input', (e) => audio.setParam('decay', parseFloat(e.target.value)));
+    accentInput.addEventListener('input', (e) => audio.setParam('accentAmount', parseFloat(e.target.value)));
+
+    // Pedal listeners
+    pedalOverdrive.addEventListener('change', (e) => audio.setPedal('overdrive', e.target.checked));
+    pedalDelay.addEventListener('change', (e) => audio.setPedal('delay', e.target.checked));
+    pedalPhaser.addEventListener('change', (e) => audio.setPedal('phaser', e.target.checked));
 
     // Init
     renderGrid();

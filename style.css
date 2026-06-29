@@ -37,7 +37,7 @@ body {
     border-radius: 16px;
     padding: 2rem;
     width: 100%;
-    max-width: 1000px;
+    max-width: 100%;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
 }
@@ -219,8 +219,15 @@ button {
     align-items: flex-start;
 }
 
+.left-panel {
+    flex: 0 0 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pedal-board,
 .sequencer-instructions {
-    flex: 0 0 160px;
     background: rgba(0, 0, 0, 0.2);
     padding: 1.5rem;
     border-radius: 8px;
@@ -229,6 +236,7 @@ button {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.pedal-board h3,
 .sequencer-instructions h3 {
     color: var(--text-main);
     margin-bottom: 1rem;
@@ -239,6 +247,32 @@ button {
     letter-spacing: 1px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 0.5rem;
+}
+
+.pedal {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.pedal:last-child {
+    margin-bottom: 0;
+}
+
+.pedal input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+.pedal label {
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    text-transform: uppercase;
 }
 
 .sequencer-instructions p {
