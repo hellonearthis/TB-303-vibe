@@ -89,10 +89,199 @@
             </div>
         </section>
 
+        <!-- Moog Grandmother Drone Synth -->
+        <section class="grandmother-section" id="grandmother-section">
+            <div class="grandmother-header">
+                <div class="grandmother-title">
+                    <div class="wood-accent left"></div>
+                    <h2>MOOG GRANDMOTHER</h2>
+                    <span class="grandmother-subtitle">Semi-Modular Analog Synth</span>
+                    <div class="wood-accent right"></div>
+                </div>
+                <div class="drone-controls">
+                    <button id="btn-drone-on" class="btn-drone">DRONE ON</button>
+                    <button id="btn-drone-off" class="btn-drone btn-drone-off">DRONE OFF</button>
+                    <div class="drone-indicator" id="drone-indicator"></div>
+                </div>
+            </div>
+
+            <div class="grandmother-panel">
+                <!-- Oscillators & Mixer -->
+                <div class="gm-group">
+                    <h3>Oscillators / Mixer</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-detune">Detune</label>
+                            <input type="range" id="gm-detune" min="0" max="1" step="0.01" value="0.15">
+                            <span class="gm-value" id="gm-detune-val">15%</span>
+                        </div>
+                        <div class="gm-knob-group">
+                            <label for="gm-noise">Noise</label>
+                            <input type="range" id="gm-noise" min="0" max="1" step="0.01" value="0.12">
+                            <span class="gm-value" id="gm-noise-val">12%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VCF -->
+                <div class="gm-group">
+                    <h3>VCF (Filter)</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-cutoff">Cutoff</label>
+                            <input type="range" id="gm-cutoff" min="0" max="1" step="0.01" value="0.2">
+                            <span class="gm-value" id="gm-cutoff-val">20%</span>
+                        </div>
+                        <div class="gm-knob-group">
+                            <label for="gm-resonance">Resonance</label>
+                            <input type="range" id="gm-resonance" min="0" max="1" step="0.01" value="0.35">
+                            <span class="gm-value" id="gm-resonance-val">35%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Envelope -->
+                <div class="gm-group">
+                    <h3>Envelope</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-attack">Attack</label>
+                            <input type="range" id="gm-attack" min="0" max="1" step="0.01" value="0.35">
+                            <span class="gm-value" id="gm-attack-val">35%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modulation -->
+                <div class="gm-group">
+                    <h3>Modulation</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-mod-wheel">Mod Wheel</label>
+                            <input type="range" id="gm-mod-wheel" min="0" max="1" step="0.01" value="0.25">
+                            <span class="gm-value" id="gm-mod-wheel-val">25%</span>
+                        </div>
+                        <div class="gm-knob-group">
+                            <label for="gm-mod-rate">Mod Rate</label>
+                            <input type="range" id="gm-mod-rate" min="0" max="1" step="0.01" value="0.3">
+                            <span class="gm-value" id="gm-mod-rate-val">30%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patch Bay: S&H → Osc2 FM -->
+                <div class="gm-group gm-patch-bay">
+                    <h3>Patch Bay <span class="patch-label">S&H Out → Osc2 FM In</span></h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-sh-rate">S&H Rate</label>
+                            <input type="range" id="gm-sh-rate" min="0" max="1" step="0.01" value="0.4">
+                            <span class="gm-value" id="gm-sh-rate-val">40%</span>
+                        </div>
+                        <div class="gm-knob-group">
+                            <label for="gm-sh-depth">S&H Depth</label>
+                            <input type="range" id="gm-sh-depth" min="0" max="1" step="0.01" value="0.3">
+                            <span class="gm-value" id="gm-sh-depth-val">30%</span>
+                        </div>
+                    </div>
+                    <div class="patch-cable-visual">
+                        <div class="jack jack-out" title="S&H Out"></div>
+                        <svg class="cable-svg" viewBox="0 0 120 30" preserveAspectRatio="none">
+                            <path d="M 5 15 Q 30 2, 60 15 T 115 15" stroke="#e85d3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                        <div class="jack jack-in" title="Osc2 FM In"></div>
+                    </div>
+                </div>
+
+                <!-- Output -->
+                <div class="gm-group">
+                    <h3>Output</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group">
+                            <label for="gm-reverb">Spring Reverb</label>
+                            <input type="range" id="gm-reverb" min="0" max="1" step="0.01" value="0.3">
+                            <span class="gm-value" id="gm-reverb-val">30%</span>
+                        </div>
+                        <div class="gm-knob-group">
+                            <label for="gm-volume">Volume</label>
+                            <input type="range" id="gm-volume" min="0" max="1" step="0.01" value="0.7">
+                            <span class="gm-value" id="gm-volume-val">70%</span>
+                        </div>
+                        <div class="gm-knob-group" style="justify-content: center; padding-left: 10px;">
+                            <label for="gm-aux" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                <input type="checkbox" id="gm-aux" style="width: 16px; height: 16px; cursor:pointer;">
+                                Inst In (303)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    <!-- Korg Monotron Duo Synth -->
+        <section class="monotron-section" id="monotron-section">
+            <div class="monotron-header">
+                <h2>KORG MONOTRON DUO</h2>
+                <div class="monotron-scale-selector">
+                    <label>Scale:</label>
+                    <select id="monotron-scale">
+                        <option value="off">Off (Continuous)</option>
+                        <option value="chromatic" selected>Chromatic</option>
+                        <option value="major">Major</option>
+                        <option value="minor">Minor</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="monotron-panel">
+                <div class="monotron-knobs">
+                    <div class="monotron-knob-group">
+                        <label for="monotron-vco2-pitch">VCO2 Pitch</label>
+                        <input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="monotron-knob-group">
+                        <label for="monotron-xmod">X-MOD Int</label>
+                        <input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0.0">
+                    </div>
+                    <div class="monotron-knob-group">
+                        <label for="monotron-cutoff">VCF Cutoff</label>
+                        <input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8">
+                    </div>
+                    <div class="monotron-knob-group">
+                        <label for="monotron-peak">VCF Peak</label>
+                        <input type="range" id="monotron-peak" min="0" max="1" step="0.01" value="0.2">
+                    </div>
+                    <div class="monotron-knob-group">
+                        <label for="monotron-volume">Volume</label>
+                        <input type="range" id="monotron-volume" min="0" max="1" step="0.01" value="0.7">
+                    </div>
+                    <div class="monotron-knob-group" style="justify-content: flex-end; padding-bottom: 5px;">
+                        <label for="monotron-aux" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                            <input type="checkbox" id="monotron-aux" style="width: 16px; height: 16px; cursor:pointer;">
+                            Aux In (303)
+                        </label>
+                    </div>
+                    <div class="monotron-knob-group">
+                        <label for="monotron-aux-vol">Aux Vol</label>
+                        <input type="range" id="monotron-aux-vol" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                </div>
+                
+                <div class="monotron-ribbon-container">
+                    <div id="monotron-ribbon" class="monotron-ribbon">
+                        <!-- Ribbon is interactive via pointer events -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </div>
 
     <script src="audio.js"></script>
+    <script src="grandmother-audio.js"></script>
+    <script src="monotron-audio.js"></script>
     <script src="sequencer.js"></script>
     <script src="app.js"></script>
+    <script src="monotron-ui.js"></script>
 </body>
 </html>

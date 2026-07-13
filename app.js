@@ -204,6 +204,70 @@ document.addEventListener('DOMContentLoaded', () => {
     pedalDelay.addEventListener('change', (e) => audio.setPedal('delay', e.target.checked));
     pedalPhaser.addEventListener('change', (e) => audio.setPedal('phaser', e.target.checked));
 
-    // Init
+    // ==========================================
+    // MOOG GRANDMOTHER — Drone Synth Controls
+    // ==========================================
+    const gm = window.GrandmotherEngine;
+    const gmSection = document.getElementById('grandmother-section');
+    const droneIndicator = document.getElementById('drone-indicator');
+    const btnDroneOn = document.getElementById('btn-drone-on');
+    const btnDroneOff = document.getElementById('btn-drone-off');
+
+    // Drone ON / OFF
+    btnDroneOn.addEventListener('click', async () => {
+        await Tone.start();
+        gm.startDrone();
+        gmSection.classList.add('drone-active');
+        droneIndicator.classList.add('active');
+    });
+
+    btnDroneOff.addEventListener('click', () => {
+        gm.stopDrone();
+        gmSection.classList.remove('drone-active');
+        droneIndicator.classList.remove('active');
+    });
+
+    // Grandmother knob controls — map element IDs to engine param keys
+    const gmControls = [
+        { id: 'gm-detune',     param: 'detune',    valId: 'gm-detune-val' },
+        { id: 'gm-noise',      param: 'noiseLevel', valId: 'gm-noise-val' },
+        { id: 'gm-cutoff',     param: 'cutoff',    valId: 'gm-cutoff-val' },
+        { id: 'gm-resonance',  param: 'resonance', valId: 'gm-resonance-val' },
+        { id: 'gm-attack',     param: 'attack',    valId: 'gm-attack-val' },
+        { id: 'gm-mod-wheel',  param: 'modWheel',  valId: 'gm-mod-wheel-val' },
+        { id: 'gm-mod-rate',   param: 'modRate',   valId: 'gm-mod-rate-val' },
+        { id: 'gm-sh-rate',    param: 'shRate',    valId: 'gm-sh-rate-val' },
+        { id: 'gm-sh-depth',   param: 'shDepth',   valId: 'gm-sh-depth-val' },
+        { id: 'gm-volume',     param: 'volume',    valId: 'gm-volume-val' },
+        { id: 'gm-reverb',     param: 'reverb',    valId: 'gm-reverb-val' }
+    ];
+
+    gmControls.forEach(({ id, param, valId }) => {
+        const input = document.getElementById(id);
+        const valDisplay = document.getElementById(valId);
+
+        input.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            gm.setParam(param, value);
+            valDisplay.textContent = Math.round(value * 100) + '%';
+        });
+    });
+
+    const gmAuxSwitch = document.getElementById('gm-aux');
+    if (gmAuxSwitch) {
+        gmAuxSwitch.addEventListener('change', (e) => {
+            if (window.AudioEngine) {
+                if (e.target.checked) {
+                    window.AudioEngine.volume.disconnect(Tone.Destination);
+                    window.AudioEngine.volume.connect(gm.extInput);
+                } else {
+                    window.AudioEngine.volume.disconnect(gm.extInput);
+                    window.AudioEngine.volume.connect(Tone.Destination);
+                }
+            }
+        });
+    }
+
+    // Initialize grid layout
     renderGrid();
 });
