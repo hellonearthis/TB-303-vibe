@@ -223,3 +223,12 @@ class MoogGrandmotherEngine {
 }
 
 window.GrandmotherEngine = new MoogGrandmotherEngine();
+
+// MIDI → Grandmother audio routing
+window.addEventListener('midiCCChange', (e) => {
+    const { parameter, scaledValue } = e.detail;
+    if (parameter.startsWith('gm-')) {
+        const gmParam = parameter.replace('gm-', '');
+        window.GrandmotherEngine.setParam(gmParam, scaledValue);
+    }
+});

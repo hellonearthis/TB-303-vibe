@@ -108,3 +108,32 @@ class MonotronAudio {
 }
 
 const monotronAudio = new MonotronAudio();
+
+// MIDI → Monotron audio routing
+window.addEventListener('midiCCChange', (e) => {
+    const { parameter, scaledValue } = e.detail;
+    const monotronRoutes = {
+        'monotron-cutoff':  'setCutoff',
+        'monotron-peak':    'setPeak',
+        'monotron-xmod':    'setXMod',
+        'monotron-volume':  'setVolume',
+        'monotron-vco2':    'setVCO2Pitch',
+        'monotron-auxvol':  'setAuxVolume',
+    };
+    if (monotronRoutes[parameter]) {
+        monotronAudio[monotronRoutes[parameter]](scaledValue);
+    }
+});
+
+// MIDI Note → Monotron ribbon (play via MIDI keyboard)
+window.addEventListener('midiNoteOn', async (e) => {
+    const { frequency } = e.detail;
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+    }
+    monotronAudio.noteOn(frequency);
+});
+
+window.addEventListener('midiNoteOff', () => {
+    monotronAudio.noteOff();
+});

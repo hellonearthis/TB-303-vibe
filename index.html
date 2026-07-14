@@ -19,6 +19,14 @@
                     <label for="tempo">BPM</label>
                     <input type="number" id="tempo" value="120" min="60" max="200">
                 </div>
+                <div class="midi-controls">
+                    <button id="btn-midi-learn" class="btn-midi-learn" title="Click, then click any knob, then move a MIDI control to map it">MIDI LEARN</button>
+                    <button id="btn-midi-reset" class="btn-secondary btn-midi-reset" title="Reset all MIDI mappings to defaults">RESET</button>
+                    <div class="midi-status" id="midi-status">
+                        <div class="midi-dot" id="midi-dot"></div>
+                        <span class="midi-label" id="midi-label">MIDI</span>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -280,6 +288,7 @@
     <script src="audio.js"></script>
     <script src="grandmother-audio.js"></script>
     <script src="monotron-audio.js"></script>
+    <script src="midi.js"></script>
     <script src="sequencer.js"></script>
     <script src="app.js"></script>
     <script src="monotron-ui.js"></script>

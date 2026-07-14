@@ -170,4 +170,75 @@ function setupMonotronUI() {
     monotronAudio.setPeak(parseFloat(peakKnob.value));
     monotronAudio.setVolume(parseFloat(volumeKnob.value));
     monotronAudio.setAuxVolume(parseFloat(auxVolKnob.value));
+
+    // --- MIDI CC → Monotron Slider Sync ---
+    const monotronInputMap = {
+        'monotron-cutoff':  cutoffKnob,
+        'monotron-peak':    peakKnob,
+        'monotron-xmod':    xmodKnob,
+        'monotron-volume':  volumeKnob,
+        'monotron-vco2':    vco2PitchKnob,
+        'monotron-auxvol':  auxVolKnob,
+    };
+
+    window.addEventListener('midiCCChange', (e) => {
+        const { parameter, scaledValue } = e.detail;
+        if (monotronInputMap[parameter]) {
+            monotronInputMap[parameter].value = scaledValue;
+        }
+    });
+
+    // --- MIDI Learn: Register Monotron parameters ---
+    // (The MIDI Learn click handlers in app.js cover TB-303 + Grandmother.
+    //  Monotron knobs need their own registration here since they're set up in a separate module.)
+    const midi = window.MIDIController;
+    if (midi) {
+        const monotronLearnables = [
+            { param: 'monotron-cutoff',  element: cutoffKnob.closest('.monotron-knob-group') },
+            { param: 'monotron-peak',    element: peakKnob.closest('.monotron-knob-group') },
+            { param: 'monotron-xmod',    element: xmodKnob.closest('.monotron-knob-group') },
+            { param: 'monotron-volume',  element: volumeKnob.closest('.monotron-knob-group') },
+            { param: 'monotron-vco2',    element: vco2PitchKnob.closest('.monotron-knob-group') },
+            { param: 'monotron-auxvol',  element: auxVolKnob.closest('.monotron-knob-group') },
+        ];
+
+        monotronLearnables.forEach(({ param, element }) => {
+            if (!element) return;
+
+            // Show mapped indicator
+            const source = midi.getSourceForParameter(param);
+            element.classList.toggle('midi-mapped', !!source);
+            if (source) element.style.position = 'relative';
+
+            // Learn-mode click handler
+            element.addEventListener('click', (e) => {
+                if (document.body.classList.contains('midi-learn-active')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Clear previous listening
+                    document.querySelectorAll('.midi-listening').forEach(el => el.classList.remove('midi-listening'));
+                    element.classList.add('midi-listening');
+
+                    midi.enterLearnMode(param);
+
+                    // Update tooltip
+                    const existingTooltip = document.querySelector('.midi-learn-tooltip');
+                    if (existingTooltip) {
+                        existingTooltip.textContent = `Move a MIDI control for: ${param.toUpperCase()}`;
+                    }
+                }
+            }, true);
+        });
+
+        // Update indicators when learn completes
+        window.addEventListener('midiLearnComplete', (e) => {
+            monotronLearnables.forEach(({ param, element }) => {
+                if (!element) return;
+                const src = midi.getSourceForParameter(param);
+                element.classList.toggle('midi-mapped', !!src);
+                if (src) element.style.position = 'relative';
+            });
+        });
+    }
 }

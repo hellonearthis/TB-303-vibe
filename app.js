@@ -268,6 +268,263 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================
+    // MIDI CONTROLLER INTEGRATION
+    // ==========================================
+    const midi = window.MIDIController;
+    const midiDot = document.getElementById('midi-dot');
+    const midiLabel = document.getElementById('midi-label');
+    const midiLearnBtn = document.getElementById('btn-midi-learn');
+    const midiResetBtn = document.getElementById('btn-midi-reset');
+
+    // --- MIDI Status Indicator ---
+    window.addEventListener('midiDeviceChange', (e) => {
+        const { type, device } = e.detail;
+        midiDot.classList.remove('connected', 'unsupported');
+
+        if (type === 'connected') {
+            midiDot.classList.add('connected');
+            midiLabel.textContent = device ? device.name : 'MIDI';
+        } else if (type === 'disconnected') {
+            // Check if any devices still connected
+            if (midi.isConnected) {
+                midiDot.classList.add('connected');
+                midiLabel.textContent = midi.deviceNames[0] || 'MIDI';
+            } else {
+                midiLabel.textContent = 'MIDI';
+            }
+        } else if (type === 'unsupported') {
+            midiDot.classList.add('unsupported');
+            midiLabel.textContent = 'NO MIDI';
+        }
+    });
+
+    // --- Learnable Parameter Registry ---
+    // Maps parameter names to { element, inputId, type }
+    const learnableParams = {};
+
+    // TB-303 knobs
+    const tb303Learnables = [
+        { param: 'cutoff',       inputId: 'cutoff',         element: cutoffInput.closest('.knob-group') },
+        { param: 'resonance',    inputId: 'resonance',      element: resInput.closest('.knob-group') },
+        { param: 'envMod',       inputId: 'env-mod',        element: envModInput.closest('.knob-group') },
+        { param: 'decay',        inputId: 'decay',          element: decayInput.closest('.knob-group') },
+        { param: 'accentAmount', inputId: 'accent-amount',  element: accentInput.closest('.knob-group') },
+    ];
+
+    tb303Learnables.forEach(({ param, inputId, element }) => {
+        learnableParams[param] = { element, inputId, type: 'range' };
+    });
+
+    // TB-303 pedals
+    const pedalLearnables = [
+        { param: 'pedal-overdrive', inputId: 'pedal-overdrive', element: pedalOverdrive.closest('.pedal') },
+        { param: 'pedal-delay',     inputId: 'pedal-delay',     element: pedalDelay.closest('.pedal') },
+        { param: 'pedal-phaser',    inputId: 'pedal-phaser',    element: pedalPhaser.closest('.pedal') },
+    ];
+
+    pedalLearnables.forEach(({ param, inputId, element }) => {
+        learnableParams[param] = { element, inputId, type: 'toggle' };
+    });
+
+    // Transport
+    learnableParams['transport-play'] = { element: playBtn, inputId: null, type: 'transport' };
+    learnableParams['transport-stop'] = { element: stopBtn, inputId: null, type: 'transport' };
+
+    // Grandmother knobs
+    gmControls.forEach(({ id, param }) => {
+        const element = document.getElementById(id)?.closest('.gm-knob-group');
+        if (element) {
+            learnableParams[`gm-${param}`] = { element, inputId: id, type: 'range' };
+        }
+    });
+
+    // --- MIDI Learn Mode ---
+    let midiLearnActive = false;
+    let currentListeningElement = null;
+    let learnTooltip = null;
+
+    function showTooltip(text) {
+        removeTooltip();
+        learnTooltip = document.createElement('div');
+        learnTooltip.className = 'midi-learn-tooltip';
+        learnTooltip.textContent = text;
+        document.body.appendChild(learnTooltip);
+    }
+
+    function removeTooltip() {
+        if (learnTooltip) {
+            learnTooltip.remove();
+            learnTooltip = null;
+        }
+    }
+
+    function toggleLearnMode() {
+        midiLearnActive = !midiLearnActive;
+        document.body.classList.toggle('midi-learn-active', midiLearnActive);
+        midiLearnBtn.classList.toggle('active', midiLearnActive);
+
+        if (midiLearnActive) {
+            showTooltip('MIDI LEARN: Click a control to assign...');
+        } else {
+            // Cancel any active listening
+            if (currentListeningElement) {
+                currentListeningElement.classList.remove('midi-listening');
+                currentListeningElement = null;
+            }
+            midi.exitLearnMode();
+            removeTooltip();
+        }
+    }
+
+    midiLearnBtn.addEventListener('click', toggleLearnMode);
+
+    midiResetBtn.addEventListener('click', () => {
+        midi.resetMap();
+        // Exit learn mode if active
+        if (midiLearnActive) toggleLearnMode();
+        updateMappedIndicators();
+    });
+
+    // Escape key exits learn mode
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && midiLearnActive) {
+            toggleLearnMode();
+        }
+    });
+
+    // Click handler for learnable elements
+    function handleLearnClick(paramName) {
+        if (!midiLearnActive) return;
+
+        // Clear previous listening state
+        if (currentListeningElement) {
+            currentListeningElement.classList.remove('midi-listening');
+        }
+
+        const learnable = learnableParams[paramName];
+        if (!learnable) return;
+
+        currentListeningElement = learnable.element;
+        currentListeningElement.classList.add('midi-listening');
+
+        midi.enterLearnMode(paramName);
+        showTooltip(`Move a MIDI control for: ${paramName.toUpperCase()}`);
+    }
+
+    // Attach learn-mode click handlers to all learnable parameters
+    Object.entries(learnableParams).forEach(([paramName, { element }]) => {
+        if (!element) return;
+        element.addEventListener('click', (e) => {
+            if (midiLearnActive) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLearnClick(paramName);
+            }
+        }, true); // Use capture to intercept before normal handlers
+    });
+
+    // Learn complete → update UI
+    window.addEventListener('midiLearnComplete', (e) => {
+        const { parameter, sourceId } = e.detail;
+        console.log(`[UI] MIDI Learn complete: ${sourceId} → ${parameter}`);
+
+        if (currentListeningElement) {
+            currentListeningElement.classList.remove('midi-listening');
+            currentListeningElement = null;
+        }
+
+        const sourceLabel = midi.getSourceLabel(sourceId);
+        showTooltip(`✓ Mapped ${sourceLabel} → ${parameter.toUpperCase()}`);
+
+        // Auto-exit learn mode after a successful mapping
+        setTimeout(() => {
+            if (midiLearnActive) toggleLearnMode();
+        }, 1500);
+
+        updateMappedIndicators();
+    });
+
+    // Update blue dot indicators on mapped controls
+    function updateMappedIndicators() {
+        Object.entries(learnableParams).forEach(([paramName, { element }]) => {
+            if (!element) return;
+            const source = midi.getSourceForParameter(paramName);
+            element.classList.toggle('midi-mapped', !!source);
+            element.style.position = source ? 'relative' : '';
+        });
+    }
+
+    // Run once on init
+    updateMappedIndicators();
+
+    // --- MIDI CC → UI Slider Sync ---
+    // When a hardware control moves, update the on-screen slider position
+    const tb303InputMap = {
+        'cutoff':       cutoffInput,
+        'resonance':    resInput,
+        'envMod':       envModInput,
+        'decay':        decayInput,
+        'accentAmount': accentInput,
+    };
+
+    window.addEventListener('midiCCChange', (e) => {
+        const { parameter, scaledValue } = e.detail;
+
+        // TB-303 sliders
+        if (tb303InputMap[parameter]) {
+            tb303InputMap[parameter].value = scaledValue;
+            return;
+        }
+
+        // Grandmother sliders
+        if (parameter.startsWith('gm-')) {
+            const gmParam = parameter.replace('gm-', '');
+            const ctrl = gmControls.find(c => c.param === gmParam);
+            if (ctrl) {
+                const input = document.getElementById(ctrl.id);
+                const valDisplay = document.getElementById(ctrl.valId);
+                if (input) input.value = scaledValue;
+                if (valDisplay) valDisplay.textContent = Math.round(scaledValue * 100) + '%';
+            }
+        }
+    });
+
+    // --- MIDI Transport ---
+    window.addEventListener('midiTransport', async (e) => {
+        const { action } = e.detail;
+        if (action === 'play') {
+            await Tone.start();
+            seq.start();
+        } else if (action === 'stop') {
+            seq.stop();
+        }
+    });
+
+    // --- MIDI Pedal Toggle ---
+    window.addEventListener('midiToggle', (e) => {
+        const { parameter, state } = e.detail;
+        const pedalMap = {
+            'pedal-overdrive': { checkbox: pedalOverdrive, name: 'overdrive' },
+            'pedal-delay':     { checkbox: pedalDelay,     name: 'delay' },
+            'pedal-phaser':    { checkbox: pedalPhaser,    name: 'phaser' },
+        };
+
+        const pedal = pedalMap[parameter];
+        if (pedal) {
+            pedal.checkbox.checked = state;
+            audio.setPedal(pedal.name, state);
+        }
+    });
+
+    // --- MIDI Program Change → Pattern Recall ---
+    window.addEventListener('midiProgramChange', (e) => {
+        const { program } = e.detail;
+        if (seq.recallPattern(program)) {
+            renderGrid();
+        }
+    });
+
     // Initialize grid layout
     renderGrid();
 });

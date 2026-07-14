@@ -133,3 +133,12 @@ class TB303AudioEngine {
 }
 
 window.AudioEngine = new TB303AudioEngine();
+
+// MIDI → TB-303 audio routing
+window.addEventListener('midiCCChange', (e) => {
+    const { parameter, scaledValue } = e.detail;
+    const tb303Params = ['cutoff', 'resonance', 'envMod', 'decay', 'accentAmount'];
+    if (tb303Params.includes(parameter)) {
+        window.AudioEngine.setParam(parameter, scaledValue);
+    }
+});
