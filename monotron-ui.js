@@ -150,15 +150,18 @@ function setupMonotronUI() {
     });
 
     auxSwitch.addEventListener('change', (e) => {
+        const monotronSection = document.getElementById('monotron-section');
         if (window.AudioEngine) {
             if (e.target.checked) {
                 // Route 303 to Monotron VCF
                 window.AudioEngine.volume.disconnect(Tone.Destination);
                 Tone.connect(window.AudioEngine.volume, monotronAudio.extInput);
+                monotronSection.classList.add('aux-routed');
             } else {
                 // Route 303 back to Destination
                 window.AudioEngine.volume.disconnect(monotronAudio.extInput);
                 window.AudioEngine.volume.connect(Tone.Destination);
+                monotronSection.classList.remove('aux-routed');
             }
         }
     });

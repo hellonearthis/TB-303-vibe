@@ -648,6 +648,21 @@ button {
     border-radius: 2px;
     cursor: pointer;
     border: 1px solid #718096;
+    transition: all 0.3s ease;
+}
+
+/* When 303 is routed into Monotron */
+.monotron-section.aux-routed .osc-group {
+    opacity: 0.3;
+}
+.monotron-section.aux-routed .vcf-group label {
+    color: #e0e6ed;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+.monotron-section.aux-routed .vcf-group input[type="range"]::-webkit-slider-thumb {
+    background: #ff3366;
+    border-color: #ff88a3;
+    box-shadow: 0 0 8px rgba(255, 51, 102, 0.5);
 }
 
 .monotron-ribbon-container {
