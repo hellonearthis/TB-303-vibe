@@ -210,21 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const gm = window.GrandmotherEngine;
     const gmSection = document.getElementById('grandmother-section');
     const droneIndicator = document.getElementById('drone-indicator');
-    const btnDroneOn = document.getElementById('btn-drone-on');
-    const btnDroneOff = document.getElementById('btn-drone-off');
+    const btnDroneToggle = document.getElementById('btn-drone-toggle');
 
-    // Drone ON / OFF
-    btnDroneOn.addEventListener('click', async () => {
+    // Drone Toggle
+    btnDroneToggle.addEventListener('click', async () => {
         await Tone.start();
-        gm.startDrone();
-        gmSection.classList.add('drone-active');
-        droneIndicator.classList.add('active');
-    });
-
-    btnDroneOff.addEventListener('click', () => {
-        gm.stopDrone();
-        gmSection.classList.remove('drone-active');
-        droneIndicator.classList.remove('active');
+        if (!gm.isPlaying) {
+            gm.startDrone();
+            gmSection.classList.add('drone-active');
+            droneIndicator.classList.add('active');
+            btnDroneToggle.classList.remove('btn-drone-off');
+            btnDroneToggle.textContent = 'DRONE: ON';
+        } else {
+            gm.stopDrone();
+            gmSection.classList.remove('drone-active');
+            droneIndicator.classList.remove('active');
+            btnDroneToggle.classList.add('btn-drone-off');
+            btnDroneToggle.textContent = 'DRONE: OFF';
+        }
     });
 
     // Grandmother knob controls — map element IDs to engine param keys
