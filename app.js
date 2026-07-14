@@ -189,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tempoInput.addEventListener('change', (e) => {
         seq.setBpm(parseFloat(e.target.value));
+        if (typeof window.updateGmSyncRate === 'function') window.updateGmSyncRate();
     });
 
     // Synth control listeners
@@ -249,12 +250,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const input = document.getElementById(id);
         const valDisplay = document.getElementById(valId);
 
-        input.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            gm.setParam(param, value);
-            valDisplay.textContent = Math.round(value * 100) + '%';
-        });
+        if (input) {
+            input.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                gm.setParam(param, value);
+                valDisplay.textContent = Math.round(value * 100) + '%';
+            });
+        }
     });
+
+    // --- LFO BPM Sync ---
+    const gmModSyncCb = document.getElementById('gm-mod-sync');
+    const gmModRateSlider = document.getElementById('gm-mod-rate');
+    const gmSyncRateSlider = document.getElementById('gm-sync-rate');
+    const gmModRateVal = document.getElementById('gm-mod-rate-val');
+
+    const gmSyncRates = [
+        { label: '4 Bars', beats: 16 },
+        { label: '2 Bars', beats: 8 },
+        { label: '1 Bar', beats: 4 },
+        { label: '1/2 Note', beats: 2 },
+        { label: 'Dotted 1/4', beats: 1.5 },
+        { label: '1/4 Note', beats: 1 },
+        { label: 'Dotted 1/8', beats: 0.75 },
+        { label: '1/8 Note', beats: 0.5 },
+        { label: '1/16 Note', beats: 0.25 },
+        { label: '1/32 Note', beats: 0.125 }
+    ];
+
+    window.updateGmSyncRate = function() {
+        if (!gmModSyncCb || !gmModSyncCb.checked) return;
+        const bpm = parseFloat(tempoInput.value) || 120;
+        const index = parseInt(gmSyncRateSlider.value);
+        const rate = gmSyncRates[index];
+        const freq = (bpm / 60) / rate.beats;
+        gm.setModRateHz(freq);
+        if (gmModRateVal) gmModRateVal.textContent = rate.label;
+    };
+
+    if (gmModSyncCb) {
+        gmModSyncCb.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                gmModRateSlider.style.display = 'none';
+                gmSyncRateSlider.style.display = 'block';
+                window.updateGmSyncRate();
+            } else {
+                gmModRateSlider.style.display = 'block';
+                gmSyncRateSlider.style.display = 'none';
+                const value = parseFloat(gmModRateSlider.value);
+                gm.setParam('modRate', value);
+                if (gmModRateVal) gmModRateVal.textContent = Math.round(value * 100) + '%';
+            }
+        });
+        gmSyncRateSlider.addEventListener('input', window.updateGmSyncRate);
+    }
 
     const gmAuxSwitch = document.getElementById('gm-aux');
     if (gmAuxSwitch) {
@@ -483,6 +532,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Grandmother sliders
         if (parameter.startsWith('gm-')) {
             const gmParam = parameter.replace('gm-', '');
+            
+            // Override modRate if BPM SYNC is enabled
+            if (gmParam === 'modRate' && gmModSyncCb && gmModSyncCb.checked) {
+                const index = Math.round(scaledValue * 9); // Map 0-1 to 0-9
+                if (gmSyncRateSlider) gmSyncRateSlider.value = index;
+                window.updateGmSyncRate();
+                return;
+            }
+
             const ctrl = gmControls.find(c => c.param === gmParam);
             if (ctrl) {
                 const input = document.getElementById(ctrl.id);

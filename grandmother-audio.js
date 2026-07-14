@@ -155,6 +155,12 @@ class MoogGrandmotherEngine {
         this.reverb.wet.value = p.reverb;
     }
 
+    setModRateHz(freq) {
+        if (this.modLFO && this.modLFO.frequency) {
+            this.modLFO.frequency.setTargetAtTime(freq, Tone.now(), 0.05);
+        }
+    }
+
     _startSH() {
         // Stop any existing S&H loop
         this._stopSH();
