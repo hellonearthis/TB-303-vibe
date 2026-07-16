@@ -232,31 +232,62 @@
             </div>
         </section>
 
-    <!-- Korg Monotron Duo Synth -->
+    <!-- Korg Monotron Synth -->
         <section class="monotron-section" id="monotron-section">
             <div class="monotron-header">
-                <h2>KORG MONOTRON DUO</h2>
-                <div class="monotron-scale-selector">
-                    <label>Scale:</label>
-                    <select id="monotron-scale">
-                        <option value="off">Off (Continuous)</option>
-                        <option value="chromatic" selected>Chromatic</option>
-                        <option value="major">Major</option>
-                        <option value="minor">Minor</option>
-                    </select>
+                <h2>KORG MONOTRON</h2>
+                <div class="monotron-header-controls" style="display:flex; gap:1.5rem; align-items:center;">
+                    <div class="monotron-scale-selector">
+                        <label>Model:</label>
+                        <select id="monotron-model">
+                            <option value="original">Original</option>
+                            <option value="duo" selected>Duo</option>
+                            <option value="delay">Delay</option>
+                        </select>
+                    </div>
+                    <div class="monotron-scale-selector" id="monotron-scale-container">
+                        <label>Scale (Duo):</label>
+                        <select id="monotron-scale">
+                            <option value="off">Off (Continuous)</option>
+                            <option value="chromatic" selected>Chromatic</option>
+                            <option value="major">Major</option>
+                            <option value="minor">Minor</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             
             <div class="monotron-panel">
                 <div class="monotron-knobs">
-                    <div class="monotron-knob-group osc-group">
+                    <!-- Switch for Mod (Original) -->
+                    <div class="monotron-knob-group mod-group original-only" style="display:none;">
+                        <label>LFO Mod</label>
+                        <select id="monotron-mod-target" style="background:#1f2937; color:#a0aec0; border:none; padding:0.2rem; border-radius:4px; font-family:'Share Tech Mono', monospace; font-size: 0.75rem;">
+                            <option value="standby">Standby</option>
+                            <option value="pitch">Pitch</option>
+                            <option value="cutoff">Cutoff</option>
+                        </select>
+                    </div>
+
+                    <div class="monotron-knob-group osc-group duo-only">
                         <label for="monotron-vco2-pitch">VCO2 Pitch</label>
                         <input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5">
                     </div>
-                    <div class="monotron-knob-group osc-group">
+                    <div class="monotron-knob-group osc-group duo-only">
                         <label for="monotron-xmod">X-MOD Int</label>
                         <input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0.0">
                     </div>
+
+                    <!-- Original LFO Knobs -->
+                    <div class="monotron-knob-group lfo-group original-only" style="display:none;">
+                        <label for="monotron-lfo-rate">LFO Rate</label>
+                        <input type="range" id="monotron-lfo-rate" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="monotron-knob-group lfo-group original-only" style="display:none;">
+                        <label for="monotron-lfo-int">LFO Int</label>
+                        <input type="range" id="monotron-lfo-int" min="0" max="1" step="0.01" value="0.0">
+                    </div>
+
                     <div class="monotron-knob-group vcf-group">
                         <label for="monotron-cutoff">VCF Cutoff</label>
                         <input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8">

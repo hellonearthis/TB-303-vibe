@@ -14,6 +14,8 @@
  * Includes MIDI Learn with localStorage persistence.
  */
 class MIDIController {
+    // WHAT: Initializes the MIDI controller mapping logic, state trackers, and defaults.
+    // WHY: We need a central class to handle Web MIDI API connections, maintain device states, and parse incoming byte messages into human-readable events.
     constructor() {
         this.midiAccess = null;
         this.activeInputs = new Map();
@@ -23,8 +25,8 @@ class MIDIController {
         // Internal state for relative encoders (Mackie V-Pots)
         // Tracks accumulated value (0-127) per CC number
         this.encoderState = {};
-        for (let cc = 16; cc <= 23; cc++) {
-            this.encoderState[cc] = 64; // Start at midpoint
+        for (let control_change_number = 16; control_change_number <= 23; control_change_number++) {
+            this.encoderState[control_change_number] = 64; // Start at midpoint
         }
 
         // Internal state for toggle tracking (pedals via Mute buttons)
@@ -71,6 +73,8 @@ class MIDIController {
 
     // ---- Lifecycle ----
 
+    // WHAT: Requests access to the browser's MIDI hardware interfaces and registers input listeners.
+    // WHY: Browsers gate MIDI access behind a promise for security reasons. We must request it, handle hot-plugging, and gracefully fall back if the user denies it or the browser lacks support.
     async _init() {
         if (!navigator.requestMIDIAccess) {
             console.warn('[MIDI] Web MIDI API not supported in this browser.');
@@ -83,174 +87,188 @@ class MIDIController {
             console.log('[MIDI] Access granted.');
 
             // Attach to all current inputs
-            this.midiAccess.inputs.forEach((input) => this._attachInput(input));
+            this.midiAccess.inputs.forEach((midi_input_device) => this._attachInput(midi_input_device));
 
             // Hot-plug support
-            this.midiAccess.onstatechange = (e) => this._onStateChange(e);
+            this.midiAccess.onstatechange = (midi_state_change_event_object) => this._onStateChange(midi_state_change_event_object);
 
             if (this.midiAccess.inputs.size === 0) {
                 this._dispatchDeviceChange('disconnected', null);
             }
-        } catch (err) {
-            console.error('[MIDI] Access denied:', err);
+        } catch (midi_access_error_object) {
+            console.error('[MIDI] Access denied:', midi_access_error_object);
             this._dispatchDeviceChange('denied', null);
         }
     }
 
-    _attachInput(input) {
-        if (this.activeInputs.has(input.id)) return;
+    // WHAT: Binds our message parsing function to a specific MIDI input device.
+    // WHY: We need to listen to incoming bytes from the hardware so we can convert physical knob turns into software events.
+    _attachInput(midi_input_device) {
+        if (this.activeInputs.has(midi_input_device.id)) return;
 
-        input.onmidimessage = (e) => this._onMessage(e);
-        this.activeInputs.set(input.id, input);
-        console.log(`[MIDI] Connected: ${input.name} (${input.id})`);
-        this._dispatchDeviceChange('connected', { name: input.name, id: input.id });
+        midi_input_device.onmidimessage = (midi_message_event_object) => this._onMessage(midi_message_event_object);
+        this.activeInputs.set(midi_input_device.id, midi_input_device);
+        console.log(`[MIDI] Connected: ${midi_input_device.name} (${midi_input_device.id})`);
+        this._dispatchDeviceChange('connected', { name: midi_input_device.name, id: midi_input_device.id });
     }
 
-    _detachInput(input) {
-        this.activeInputs.delete(input.id);
-        console.log(`[MIDI] Disconnected: ${input.name} (${input.id})`);
-        this._dispatchDeviceChange('disconnected', { name: input.name, id: input.id });
+    // WHAT: Unbinds and removes a disconnected MIDI input device from our active list.
+    // WHY: Prevents memory leaks and allows the UI to update to show that the device is no longer available.
+    _detachInput(midi_input_device) {
+        this.activeInputs.delete(midi_input_device.id);
+        console.log(`[MIDI] Disconnected: ${midi_input_device.name} (${midi_input_device.id})`);
+        this._dispatchDeviceChange('disconnected', { name: midi_input_device.name, id: midi_input_device.id });
     }
 
-    _onStateChange(e) {
-        const port = e.port;
-        if (port.type !== 'input') return;
+    // WHAT: Handles USB hot-plugging events (plugging in or unplugging a MIDI keyboard).
+    // WHY: Hardware can be connected or disconnected at any time while the web app is running. This dynamically catches those events to route them properly.
+    _onStateChange(midi_state_change_event_object) {
+        const midi_port_object = midi_state_change_event_object.port;
+        if (midi_port_object.type !== 'input') return;
 
-        if (port.state === 'connected') {
-            this._attachInput(port);
-        } else if (port.state === 'disconnected') {
-            this._detachInput(port);
+        if (midi_port_object.state === 'connected') {
+            this._attachInput(midi_port_object);
+        } else if (midi_port_object.state === 'disconnected') {
+            this._detachInput(midi_port_object);
         }
     }
 
     // ---- Message Parsing ----
 
-    _onMessage(e) {
-        const [status, data1, data2] = e.data;
-        const messageType = status & 0xF0;
-        const channel = status & 0x0F;
+    // WHAT: Intercepts raw MIDI byte arrays and dispatches them to specific handler functions (Control Change, Pitch Bend, Note On/Off).
+    // WHY: MIDI is a highly compressed byte protocol. The first byte determines the message type and channel, while the subsequent bytes hold the data (like velocity or pitch).
+    _onMessage(midi_message_event_object) {
+        const [status_byte, data_byte_1, data_byte_2] = midi_message_event_object.data;
+        const message_type_nibble = status_byte & 0xF0;
+        const midi_channel_nibble = status_byte & 0x0F;
 
-        switch (messageType) {
+        switch (message_type_nibble) {
             case 0xB0: // Control Change
-                this._handleCC(channel, data1, data2);
+                this._handleCC(midi_channel_nibble, data_byte_1, data_byte_2);
                 break;
             case 0xE0: // Pitch Bend (Mackie faders)
-                this._handlePitchBend(channel, data1, data2);
+                this._handlePitchBend(midi_channel_nibble, data_byte_1, data_byte_2);
                 break;
             case 0x90: // Note On
-                if (data2 > 0) {
-                    this._handleNoteOn(channel, data1, data2);
+                if (data_byte_2 > 0) {
+                    this._handleNoteOn(midi_channel_nibble, data_byte_1, data_byte_2);
                 } else {
-                    this._handleNoteOff(channel, data1);
+                    this._handleNoteOff(midi_channel_nibble, data_byte_1);
                 }
                 break;
             case 0x80: // Note Off
-                this._handleNoteOff(channel, data1);
+                this._handleNoteOff(midi_channel_nibble, data_byte_1);
                 break;
             case 0xC0: // Program Change
-                this._handleProgramChange(channel, data1);
+                this._handleProgramChange(midi_channel_nibble, data_byte_1);
                 break;
         }
     }
 
-    _handleCC(channel, cc, value) {
-        const sourceId = `cc_${cc}`;
+    // WHAT: Processes MIDI Control Change (CC) messages, handling both absolute 0-127 values and relative endless encoders (Mackie V-Pots).
+    // WHY: Standard knobs send absolute values, but some pro gear (like the SMC-Mixer) sends relative delta ticks (e.g. "moved left 2 ticks"). We must parse both and scale them for the UI.
+    _handleCC(midi_channel_nibble, control_change_number, control_value) {
+        const mapping_source_id_string = `cc_${control_change_number}`;
 
         // ---- MIDI Learn ----
         if (this.isLearnMode && this.learnTarget) {
-            this._completeLearning(sourceId, { min: 0, max: 1, log: false });
+            this._completeLearning(mapping_source_id_string, { min: 0, max: 1, log: false });
             return;
         }
 
         // Check if this is a Mackie relative encoder (CC 16-23)
-        const isRelativeEncoder = cc >= 16 && cc <= 23;
+        const is_relative_encoder_boolean = control_change_number >= 16 && control_change_number <= 23;
 
-        let rawValue;
-        if (isRelativeEncoder) {
+        let processed_raw_value;
+        if (is_relative_encoder_boolean) {
             // Mackie Control V-Pots: bit 6 (value 64) is the direction flag
             // 1-63 = Clockwise (CW), 65-127 = Counter-Clockwise (CCW)
-            const direction = (value & 0x40) ? -1 : 1; // If 64 bit is set, it's negative
-            const ticks = value & 0x3F; // Mask out the direction bit to get the number of ticks
-            const delta = direction * ticks;
+            const direction_multiplier = (control_value & 0x40) ? -1 : 1; // If 64 bit is set, it's negative
+            const encoder_ticks_integer = control_value & 0x3F; // Mask out the direction bit to get the number of ticks
+            const delta_change_integer = direction_multiplier * encoder_ticks_integer;
             
             // Sensitivity multiplier
-            const sensitivity = 2;
-            this.encoderState[cc] = Math.max(0, Math.min(127, this.encoderState[cc] + (delta * sensitivity)));
-            rawValue = this.encoderState[cc];
+            const sensitivity_multiplier_integer = 2;
+            this.encoderState[control_change_number] = Math.max(0, Math.min(127, this.encoderState[control_change_number] + (delta_change_integer * sensitivity_multiplier_integer)));
+            processed_raw_value = this.encoderState[control_change_number];
         } else {
             // Absolute CC
-            rawValue = value;
+            processed_raw_value = control_value;
         }
 
-        const mapping = this.map[sourceId];
-        if (!mapping) return;
+        const configuration_mapping_object = this.map[mapping_source_id_string];
+        if (!configuration_mapping_object) return;
 
-        const scaledValue = this._scale(rawValue, mapping.min, mapping.max, mapping.log);
+        const normalized_scaled_value = this._scale(processed_raw_value, configuration_mapping_object.min, configuration_mapping_object.max, configuration_mapping_object.log);
 
         window.dispatchEvent(new CustomEvent('midiCCChange', {
             detail: {
-                parameter: mapping.parameter,
-                scaledValue,
-                rawValue,
-                sourceId
+                parameter: configuration_mapping_object.parameter,
+                scaledValue: normalized_scaled_value,
+                rawValue: processed_raw_value,
+                sourceId: mapping_source_id_string
             }
         }));
     }
 
-    _handlePitchBend(channel, lsb, msb) {
-        const sourceId = `pb_${channel}`;
+    // WHAT: Parses 14-bit high-resolution Pitch Bend messages often sent by motorized faders.
+    // WHY: Faders require higher resolution than standard CC knobs to avoid "zipper" noise when sweeping parameters. This combines two 7-bit bytes into a single 14-bit value.
+    _handlePitchBend(midi_channel_nibble, least_significant_byte, most_significant_byte) {
+        const mapping_source_id_string = `pb_${midi_channel_nibble}`;
 
         // ---- MIDI Learn ----
         if (this.isLearnMode && this.learnTarget) {
-            this._completeLearning(sourceId, { min: 0, max: 1, log: false });
+            this._completeLearning(mapping_source_id_string, { min: 0, max: 1, log: false });
             return;
         }
 
-        const mapping = this.map[sourceId];
-        if (!mapping) return;
+        const configuration_mapping_object = this.map[mapping_source_id_string];
+        if (!configuration_mapping_object) return;
 
         // 14-bit value: 0-16383
-        const raw14 = (msb << 7) | lsb;
-        const rawValue = Math.round((raw14 / 16383) * 127); // Normalize to 0-127 for consistency
-        const scaledValue = this._scale(rawValue, mapping.min, mapping.max, mapping.log);
+        const combined_14_bit_value = (most_significant_byte << 7) | least_significant_byte;
+        const normalized_7_bit_value = Math.round((combined_14_bit_value / 16383) * 127); // Normalize to 0-127 for consistency
+        const normalized_scaled_value = this._scale(normalized_7_bit_value, configuration_mapping_object.min, configuration_mapping_object.max, configuration_mapping_object.log);
 
         window.dispatchEvent(new CustomEvent('midiCCChange', {
             detail: {
-                parameter: mapping.parameter,
-                scaledValue,
-                rawValue,
-                sourceId
+                parameter: configuration_mapping_object.parameter,
+                scaledValue: normalized_scaled_value,
+                rawValue: normalized_7_bit_value,
+                sourceId: mapping_source_id_string
             }
         }));
     }
 
-    _handleNoteOn(channel, note, velocity) {
-        const sourceId = `note_${note}`;
+    // WHAT: Processes MIDI Note On messages for triggering synth notes or pressing transport/mute buttons on a DAW controller.
+    // WHY: Keyboards send notes to play music, but DAW controllers often hijack Note On events to act as button presses (e.g. Play, Stop, Mute). We must distinguish between the two based on our mapping.
+    _handleNoteOn(midi_channel_nibble, midi_note_number, note_velocity_value) {
+        const mapping_source_id_string = `note_${midi_note_number}`;
 
         // ---- MIDI Learn ----
         if (this.isLearnMode && this.learnTarget) {
-            this._completeLearning(sourceId, { type: 'toggle' });
+            this._completeLearning(mapping_source_id_string, { type: 'toggle' });
             return;
         }
 
-        const mapping = this.map[sourceId];
+        const configuration_mapping_object = this.map[mapping_source_id_string];
 
-        if (mapping) {
-            if (mapping.type === 'transport') {
-                const action = mapping.parameter === 'transport-play' ? 'play' : 'stop';
+        if (configuration_mapping_object) {
+            if (configuration_mapping_object.type === 'transport') {
+                const transport_action_string = configuration_mapping_object.parameter === 'transport-play' ? 'play' : 'stop';
                 window.dispatchEvent(new CustomEvent('midiTransport', {
-                    detail: { action }
+                    detail: { action: transport_action_string }
                 }));
                 return;
             }
 
-            if (mapping.type === 'toggle') {
+            if (configuration_mapping_object.type === 'toggle') {
                 // Toggle state on note-on
-                this.toggleState[sourceId] = !this.toggleState[sourceId];
+                this.toggleState[mapping_source_id_string] = !this.toggleState[mapping_source_id_string];
                 window.dispatchEvent(new CustomEvent('midiToggle', {
                     detail: {
-                        parameter: mapping.parameter,
-                        state: this.toggleState[sourceId]
+                        parameter: configuration_mapping_object.parameter,
+                        state: this.toggleState[mapping_source_id_string]
                     }
                 }));
                 return;
@@ -260,59 +278,71 @@ class MIDIController {
         // Generic note on (for Monotron / sequencer integration)
         window.dispatchEvent(new CustomEvent('midiNoteOn', {
             detail: {
-                note,
-                velocity,
-                channel,
-                frequency: this._midiToFreq(note)
+                note: midi_note_number,
+                velocity: note_velocity_value,
+                channel: midi_channel_nibble,
+                frequency: this._midiToFreq(midi_note_number)
             }
         }));
     }
 
-    _handleNoteOff(channel, note) {
+    // WHAT: Dispatches a note off event when a key is released.
+    // WHY: We tell the application to close the amplifier envelope for the specific note that was just released.
+    _handleNoteOff(midi_channel_nibble, midi_note_number) {
         window.dispatchEvent(new CustomEvent('midiNoteOff', {
-            detail: { note, channel }
+            detail: { note: midi_note_number, channel: midi_channel_nibble }
         }));
     }
 
-    _handleProgramChange(channel, program) {
+    // WHAT: Intercepts MIDI Program Change messages and maps them to sequence memory slots (1-9).
+    // WHY: Allows the user to switch active sequencer patterns directly from a hardware MIDI controller without touching the computer keyboard.
+    _handleProgramChange(midi_channel_nibble, program_number_integer) {
         // Map to pattern slots 1-9 (program 0-8 → slot 1-9)
-        const slot = program + 1;
-        if (slot >= 1 && slot <= 9) {
+        const memory_slot_integer = program_number_integer + 1;
+        if (memory_slot_integer >= 1 && memory_slot_integer <= 9) {
             window.dispatchEvent(new CustomEvent('midiProgramChange', {
-                detail: { program: slot }
+                detail: { program: memory_slot_integer }
             }));
         }
     }
 
     // ---- Value Scaling ----
 
-    _scale(raw, min, max, isLog) {
-        const normalized = raw / 127;
-        if (isLog) {
+    // WHAT: Converts a raw 0-127 MIDI value into the desired output range, supporting optional logarithmic scaling.
+    // WHY: UI sliders expect 0-1, but frequencies often need logarithmic curves to sound natural (e.g. sweeping a filter). This normalizes the hardware input for the software.
+    _scale(raw_midi_value, minimum_bound, maximum_bound, is_logarithmic_boolean) {
+        const normalized_float = raw_midi_value / 127;
+        if (is_logarithmic_boolean) {
             // Logarithmic: for frequency-type parameters
-            return min * Math.pow(max / min, normalized);
+            return minimum_bound * Math.pow(maximum_bound / minimum_bound, normalized_float);
         }
         // Linear
-        return min + (normalized * (max - min));
+        return minimum_bound + (normalized_float * (maximum_bound - minimum_bound));
     }
 
-    _midiToFreq(noteNumber) {
+    // WHAT: Converts a standard MIDI note number (0-127) into a physical frequency in Hertz.
+    // WHY: Tone.js oscillators require frequencies in Hertz to play pitches accurately. We use A4 = 440Hz as the tuning reference.
+    _midiToFreq(midi_note_number_integer) {
         // Standard MIDI note to frequency: A4 (note 69) = 440 Hz
-        return 440 * Math.pow(2, (noteNumber - 69) / 12);
+        return 440 * Math.pow(2, (midi_note_number_integer - 69) / 12);
     }
 
     // ---- MIDI Learn ----
 
-    enterLearnMode(parameter) {
+    // WHAT: Activates MIDI Learn mode for a specific UI parameter.
+    // WHY: Allows the user to dynamically map any physical knob on their controller to any software knob in the app by simply wiggling it.
+    enterLearnMode(software_parameter_name_string) {
         this.isLearnMode = true;
-        this.learnTarget = { parameter };
-        console.log(`[MIDI Learn] Listening for input → "${parameter}"`);
+        this.learnTarget = { parameter: software_parameter_name_string };
+        console.log(`[MIDI Learn] Listening for input → "${software_parameter_name_string}"`);
 
         window.dispatchEvent(new CustomEvent('midiLearnStart', {
-            detail: { parameter }
+            detail: { parameter: software_parameter_name_string }
         }));
     }
 
+    // WHAT: Cancels an active MIDI Learn session without saving.
+    // WHY: If the user changes their mind or clicks away, we need to exit the listening state to prevent accidental mappings.
     exitLearnMode() {
         this.isLearnMode = false;
         this.learnTarget = null;
@@ -320,26 +350,28 @@ class MIDIController {
         window.dispatchEvent(new CustomEvent('midiLearnCancel', {}));
     }
 
-    _completeLearning(sourceId, defaults) {
-        const parameter = this.learnTarget.parameter;
+    // WHAT: Finalizes the mapping once a hardware input is detected during Learn mode.
+    // WHY: Connects the physical input to the software parameter, cleans up old conflicting mappings, and persists the new configuration to local storage so it survives page reloads.
+    _completeLearning(mapping_source_id_string, default_configuration_object) {
+        const software_parameter_name_string = this.learnTarget.parameter;
 
         // Check if this parameter already exists elsewhere in the map — remove old binding
-        for (const key of Object.keys(this.map)) {
-            if (this.map[key].parameter === parameter) {
-                delete this.map[key];
+        for (const mapping_key_string of Object.keys(this.map)) {
+            if (this.map[mapping_key_string].parameter === software_parameter_name_string) {
+                delete this.map[mapping_key_string];
             }
         }
 
         // Assign new mapping
-        this.map[sourceId] = {
-            parameter,
-            min: defaults.min !== undefined ? defaults.min : 0,
-            max: defaults.max !== undefined ? defaults.max : 1,
-            log: defaults.log || false,
-            type: defaults.type || 'cc',
+        this.map[mapping_source_id_string] = {
+            parameter: software_parameter_name_string,
+            min: default_configuration_object.min !== undefined ? default_configuration_object.min : 0,
+            max: default_configuration_object.max !== undefined ? default_configuration_object.max : 1,
+            log: default_configuration_object.log || false,
+            type: default_configuration_object.type || 'cc',
         };
 
-        console.log(`[MIDI Learn] Mapped ${sourceId} → "${parameter}"`);
+        console.log(`[MIDI Learn] Mapped ${mapping_source_id_string} → "${software_parameter_name_string}"`);
 
         this.isLearnMode = false;
         this.learnTarget = null;
@@ -348,11 +380,12 @@ class MIDIController {
         this._saveMap();
 
         window.dispatchEvent(new CustomEvent('midiLearnComplete', {
-            detail: { parameter, sourceId }
+            detail: { parameter: software_parameter_name_string, sourceId: mapping_source_id_string }
         }));
     }
 
-    // Reset all learned mappings to defaults
+    // WHAT: Erases all custom user mappings and restores the default Mackie Control mapping template.
+    // WHY: Gives the user a panic button to reset their controller if they've completely messed up their MIDI mappings.
     resetMap() {
         this.map = JSON.parse(JSON.stringify(this.defaultMap));
         this._saveMap();
@@ -361,24 +394,28 @@ class MIDIController {
 
     // ---- Persistence ----
 
+    // WHAT: Serializes the current MIDI map to the browser's Local Storage.
+    // WHY: We want the user's custom MIDI mappings to persist across browser sessions so they don't have to remap their controller every time they open the app.
     _saveMap() {
         try {
             localStorage.setItem('tb303_midiMap', JSON.stringify(this.map));
-        } catch (e) {
-            console.warn('[MIDI] Could not save mappings to localStorage:', e);
+        } catch (local_storage_error_object) {
+            console.warn('[MIDI] Could not save mappings to localStorage:', local_storage_error_object);
         }
     }
 
+    // WHAT: Retrieves the saved MIDI map from Local Storage upon initialization.
+    // WHY: This restores the user's custom mappings seamlessly. If none exist, it falls back to the default map.
     _loadMap() {
         try {
-            const saved = localStorage.getItem('tb303_midiMap');
-            if (saved) {
-                const parsed = JSON.parse(saved);
+            const saved_json_string = localStorage.getItem('tb303_midiMap');
+            if (saved_json_string) {
+                const parsed_mapping_object = JSON.parse(saved_json_string);
                 console.log('[MIDI] Loaded saved mappings from localStorage.');
-                return parsed;
+                return parsed_mapping_object;
             }
-        } catch (e) {
-            console.warn('[MIDI] Could not load saved mappings:', e);
+        } catch (local_storage_load_error_object) {
+            console.warn('[MIDI] Could not load saved mappings:', local_storage_load_error_object);
         }
         // Return a deep copy of defaults
         return JSON.parse(JSON.stringify(this.defaultMap));
@@ -386,51 +423,57 @@ class MIDIController {
 
     // ---- Helpers ----
 
-    // Get the source ID currently mapped to a parameter (for UI display)
-    getSourceForParameter(parameter) {
-        for (const [sourceId, mapping] of Object.entries(this.map)) {
-            if (mapping.parameter === parameter) {
-                return sourceId;
+    // WHAT: Reverse-lookups a parameter name to find which hardware ID is currently controlling it.
+    // WHY: Used by the UI to display the current mapped controller (e.g. "CC 7") underneath a software knob.
+    getSourceForParameter(software_parameter_name_string) {
+        for (const [mapping_source_id_string, configuration_mapping_object] of Object.entries(this.map)) {
+            if (configuration_mapping_object.parameter === software_parameter_name_string) {
+                return mapping_source_id_string;
             }
         }
         return null;
     }
 
-    // Get human-readable label for a source ID
-    getSourceLabel(sourceId) {
-        if (!sourceId) return '';
-        if (sourceId.startsWith('pb_')) {
-            return `Fader ${parseInt(sourceId.split('_')[1]) + 1}`;
+    // WHAT: Translates a raw hardware source ID string into a human-readable label.
+    // WHY: Users don't want to see "pb_0" or "note_94" in the UI. They want to see "Fader 1" or "Play Btn" to easily understand their mappings.
+    getSourceLabel(mapping_source_id_string) {
+        if (!mapping_source_id_string) return '';
+        if (mapping_source_id_string.startsWith('pb_')) {
+            return `Fader ${parseInt(mapping_source_id_string.split('_')[1]) + 1}`;
         }
-        if (sourceId.startsWith('cc_')) {
-            const cc = parseInt(sourceId.split('_')[1]);
-            if (cc >= 16 && cc <= 23) return `V-Pot ${cc - 15}`;
-            return `CC ${cc}`;
+        if (mapping_source_id_string.startsWith('cc_')) {
+            const control_change_number = parseInt(mapping_source_id_string.split('_')[1]);
+            if (control_change_number >= 16 && control_change_number <= 23) return `V-Pot ${control_change_number - 15}`;
+            return `CC ${control_change_number}`;
         }
-        if (sourceId.startsWith('note_')) {
-            const note = parseInt(sourceId.split('_')[1]);
-            if (note === 93) return 'Stop Btn';
-            if (note === 94) return 'Play Btn';
-            if (note >= 16 && note <= 23) return `Mute ${note - 15}`;
-            return `Note ${note}`;
+        if (mapping_source_id_string.startsWith('note_')) {
+            const midi_note_number = parseInt(mapping_source_id_string.split('_')[1]);
+            if (midi_note_number === 93) return 'Stop Btn';
+            if (midi_note_number === 94) return 'Play Btn';
+            if (midi_note_number >= 16 && midi_note_number <= 23) return `Mute ${midi_note_number - 15}`;
+            return `Note ${midi_note_number}`;
         }
-        return sourceId;
+        return mapping_source_id_string;
     }
 
-    _dispatchDeviceChange(type, device) {
+    // WHAT: Dispatches an event when the connection status of a MIDI device changes.
+    // WHY: Decouples the hardware polling from the UI, allowing the UI to listen for these events and display a "Connected" or "Disconnected" badge gracefully.
+    _dispatchDeviceChange(connection_status_type_string, device_info_object) {
         window.dispatchEvent(new CustomEvent('midiDeviceChange', {
-            detail: { type, device }
+            detail: { type: connection_status_type_string, device: device_info_object }
         }));
     }
 
-    // Check if any MIDI devices are currently connected
+    // WHAT: Checks if any MIDI interfaces are currently connected.
+    // WHY: A simple helper getter for the UI to query the active hardware state.
     get isConnected() {
         return this.activeInputs.size > 0;
     }
 
-    // Get list of connected device names
+    // WHAT: Returns an array of human-readable names of all currently connected MIDI devices.
+    // WHY: Used by the UI to list available hardware devices in a dropdown or status tooltip.
     get deviceNames() {
-        return Array.from(this.activeInputs.values()).map(i => i.name);
+        return Array.from(this.activeInputs.values()).map(midi_input_device => midi_input_device.name);
     }
 }
 

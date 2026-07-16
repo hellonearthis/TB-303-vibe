@@ -78,3 +78,30 @@ To the left of the sequencer grid, you'll find three classic stompbox pedals to 
 The emulator features 9 slots for pattern memory. Slots 1 through 4 are pre-loaded with classic, intricately programmed acid house grooves (complete with optimized Slides and Accents) to get you started!
 - **To Save**: Hold `Shift` and press a number key (`1-9`) on the number row. The current grid will be saved to that slot.
 - **To Recall**: Press a number key (`1-9`) on the number row. The grid will instantly update to the saved pattern, staying perfectly in time with the music.
+
+---
+
+## The Synth Rack
+
+In addition to the 303, this emulator includes fully playable software clones of two analog classics. You can use the **Aux In** switches on their panels to route the 303's audio through their filters for creative processing!
+
+### Moog Grandmother (Drone Engine)
+A semi-modular analog synthesizer modeled after the Moog Grandmother. This engine is optimized for creating dark, evolving drones and sci-fi textures.
+- **Oscillators**: Two oscillators (base and -1 octave detuned) combined with white noise.
+- **Modulation (LFO)**: A dedicated LFO routes to the VCF cutoff and Oscillator pitch, controlled by the Mod Wheel. You can sync the LFO rate to the sequencer's BPM.
+- **Sample & Hold (FM)**: A deeply integrated S&H circuit that routes directly to Oscillator 2's Frequency Modulation (FM) input. Turn up the S&H Depth to generate wild, randomized computer bleeps.
+
+### Korg Monotron (Ribbon Synthesizer)
+An accurate emulation of the Korg Monotron series. Unlike traditional keyboards, the Monotron features a continuous analog ribbon controller.
+- **Original**: The classic layout with a 1-octave continuous ribbon (E to E). Includes a dedicated LFO with a Mod Target switch to modulate either Pitch or Cutoff.
+- **Duo**: Features two oscillators with X-MOD (Cross Modulation). You can choose to play the ribbon continuously, or snap it to Chromatic, Major, or Minor scales.
+- **Delay**: Features an unquantized ribbon spanning 4 full octaves.
+
+---
+
+## Running Locally
+
+To launch the web app on Windows:
+1. Double-click the included `start.bat` file.
+2. It will automatically detect Python or Node.js on your system to start a local development server and open your web browser. If neither is installed, it will securely open the `index.html` file directly.
+3. **Important**: You must click the **PLAY** button in the app to initialize the Web Audio API context.

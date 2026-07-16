@@ -678,6 +678,7 @@ button {
     position: relative;
     cursor: pointer;
     touch-action: none;
+    overflow: hidden;
 }
 
 .monotron-ribbon::after {
@@ -689,6 +690,46 @@ button {
     height: 2px;
     background: rgba(0,0,0,0.5);
     transform: translateY(-50%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+.monotron-keyboard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    pointer-events: none;
+    opacity: 0.85; /* Blend slightly with the ribbon */
+    z-index: 1;
+}
+
+.ribbon-key-white {
+    flex: 1;
+    background: #e2e8f0; /* Flat white color */
+    border-right: 2px solid #1a202c; /* Analog gap between white keys */
+    position: relative;
+    box-sizing: border-box;
+}
+
+.ribbon-key-white:first-child {
+    border-left: none;
+}
+.ribbon-key-white:last-child {
+    border-right: none;
+}
+
+.ribbon-key-black {
+    position: absolute;
+    width: 60%;
+    height: 55%;
+    background: #1a202c; /* Matches the ribbon base color (absence of white paint) */
+    top: 0;
+    left: 70%;
+    z-index: 2;
+    /* No borders, shadows or gradients - it's just a flat printed shape */
 }
 
 .ribbon-touch-indicator {

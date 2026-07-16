@@ -1,4 +1,6 @@
 class Sequencer {
+    // WHAT: Initializes the Sequencer engine, setting up the 16-step grid, the default patterns, and the Tone.js playback loop.
+    // WHY: The sequencer needs to hold the state of every musical step in memory so it can schedule them precisely with the Web Audio API transport.
     constructor() {
         this.steps = 16;
         this.scale = ['C4', 'B3', 'A#3', 'A3', 'G#3', 'G3', 'F#3', 'F3', 'E3', 'D#3', 'D3', 'C#3', 'C3'];
@@ -97,54 +99,62 @@ class Sequencer {
         this.currentStep = 0;
         
         this.loop = new Tone.Sequence(
-            (time, stepIndex) => this.tick(time, stepIndex),
-            Array.from({ length: this.steps }, (_, i) => i),
+            (scheduled_audio_time, current_step_index) => this.tick(scheduled_audio_time, current_step_index),
+            Array.from({ length: this.steps }, (_, loop_index) => loop_index),
             "16n"
         );
         
         this.uiCallback = null;
     }
 
-    setUICallback(cb) {
-        this.uiCallback = cb;
+    // WHAT: Registers a callback function that the sequencer will call every time it advances a step.
+    // WHY: We need to decouple the audio logic from the HTML UI. This allows the sequencer to tell the UI exactly when to highlight the current playing column.
+    setUICallback(user_interface_callback_function) {
+        this.uiCallback = user_interface_callback_function;
     }
 
-    tick(time, stepIndex) {
-        this.currentStep = stepIndex;
+    // WHAT: The core tick function that gets called 16 times per measure by the Tone.Sequence.
+    // WHY: This function looks at the current step's data (note, slide, accent), checks what happened on the previous step (to handle slides correctly), and tells the Audio Engine to play it.
+    tick(scheduled_audio_time, current_step_index) {
+        this.currentStep = current_step_index;
         
-        const stepData = this.grid[stepIndex];
+        const step_data_object = this.grid[current_step_index];
         
-        const prevStepIndex = stepIndex === 0 ? this.steps - 1 : stepIndex - 1;
-        const prevStep = this.grid[prevStepIndex];
-        const prevSlide = prevStep.note !== null && prevStep.slide;
+        const previous_step_index = current_step_index === 0 ? this.steps - 1 : current_step_index - 1;
+        const previous_step_object = this.grid[previous_step_index];
+        const is_previous_step_sliding = previous_step_object.note !== null && previous_step_object.slide;
         
         // Calculate 16th note duration for portamento/release timing
-        const stepDuration = Tone.Time("16n").toSeconds();
+        const step_duration_in_seconds = Tone.Time("16n").toSeconds();
 
         window.AudioEngine.playStep(
-            stepData.note, 
-            time, 
-            stepData.slide, 
-            stepData.accent, 
-            stepData.ghost,
-            stepDuration,
-            prevSlide
+            step_data_object.note, 
+            scheduled_audio_time, 
+            step_data_object.slide, 
+            step_data_object.accent, 
+            step_data_object.ghost,
+            step_duration_in_seconds,
+            is_previous_step_sliding
         );
 
         // Trigger UI update using Tone.Draw to sync visually with audio time
         if (this.uiCallback) {
             Tone.Draw.schedule(() => {
-                this.uiCallback(stepIndex);
-            }, time);
+                this.uiCallback(current_step_index);
+            }, scheduled_audio_time);
         }
     }
 
+    // WHAT: Starts the global Tone.js transport and the local sequence loop.
+    // WHY: Tone.js requires the master transport to be running before any sequences will actually emit ticks.
     start() {
         Tone.Transport.start();
         this.loop.start(0);
         this.isPlaying = true;
     }
 
+    // WHAT: Stops the global transport, resets the step counter, and clears the UI playhead.
+    // WHY: When the user presses stop, the music should halt immediately, and the visual indicator should be removed so it doesn't confusingly stay highlighted.
     stop() {
         Tone.Transport.stop();
         this.loop.stop();
@@ -153,49 +163,69 @@ class Sequencer {
         if (this.uiCallback) this.uiCallback(-1); // Clear playhead
     }
 
-    setBpm(bpm) {
-        Tone.Transport.bpm.value = bpm;
+    // WHAT: Sets the master tempo for the Tone.js transport.
+    // WHY: Changing the BPM scales all timing universally, speeding up or slowing down the sequencer playback perfectly in sync.
+    setBpm(beats_per_minute) {
+        Tone.Transport.bpm.value = beats_per_minute;
     }
 
-    toggleNote(step, note) {
-        if (this.grid[step].note === note) {
-            this.grid[step].note = null; // Remove note
+    // WHAT: Toggles a specific musical note on or off for a given step.
+    // WHY: If the user clicks an empty cell, it adds the note. If they click an already active note, it removes it, acting like a toggle switch for programming.
+    toggleNote(step_index_number, musical_note_string) {
+        if (this.grid[step_index_number].note === musical_note_string) {
+            this.grid[step_index_number].note = null; // Remove note
         } else {
-            this.grid[step].note = note; // Add/Change note
+            this.grid[step_index_number].note = musical_note_string; // Add/Change note
         }
     }
 
-    toggleSlide(step) {
-        this.grid[step].slide = !this.grid[step].slide;
+    // WHAT: Toggles the slide parameter for a given step.
+    // WHY: Slide tells the audio engine not to retrigger the envelope on the next step, creating the classic 303 portamento glide.
+    toggleSlide(step_index_number) {
+        this.grid[step_index_number].slide = !this.grid[step_index_number].slide;
     }
 
-    toggleAccent(step) {
-        this.grid[step].accent = !this.grid[step].accent;
-        if (this.grid[step].accent) this.grid[step].ghost = false; // Mutually exclusive
+    // WHAT: Toggles the accent parameter for a given step and ensures it is mutually exclusive with ghost.
+    // WHY: A step can be loud (accent) or quiet (ghost), but it physically cannot be both at the same time in the circuitry.
+    toggleAccent(step_index_number) {
+        this.grid[step_index_number].accent = !this.grid[step_index_number].accent;
+        if (this.grid[step_index_number].accent) {
+            this.grid[step_index_number].ghost = false; // Mutually exclusive
+        }
     }
 
-    toggleGhost(step) {
-        this.grid[step].ghost = !this.grid[step].ghost;
-        if (this.grid[step].ghost) this.grid[step].accent = false; // Mutually exclusive
+    // WHAT: Toggles the ghost parameter for a given step and ensures it is mutually exclusive with accent.
+    // WHY: Ghost notes drop the volume and filter cutoff. Just like accents, they cannot exist simultaneously on the same step.
+    toggleGhost(step_index_number) {
+        this.grid[step_index_number].ghost = !this.grid[step_index_number].ghost;
+        if (this.grid[step_index_number].ghost) {
+            this.grid[step_index_number].accent = false; // Mutually exclusive
+        }
     }
 
+    // WHAT: Iterates through the entire 16-step grid and resets every parameter to its default empty state.
+    // WHY: Provides a quick way for the user to erase their current pattern and start programming from scratch.
     clearGrid() {
-        this.grid.forEach(step => {
-            step.note = null;
-            step.slide = false;
-            step.accent = false;
-            step.ghost = false;
+        this.grid.forEach(sequencer_step_object => {
+            sequencer_step_object.note = null;
+            sequencer_step_object.slide = false;
+            sequencer_step_object.accent = false;
+            sequencer_step_object.ghost = false;
         });
     }
 
-    savePattern(slot) {
+    // WHAT: Saves a deep copy of the current grid state into a specific memory slot.
+    // WHY: We must deep copy via JSON stringify/parse because otherwise we'd just store a reference, and future edits would overwrite the saved pattern!
+    savePattern(memory_slot_index) {
         // Deep copy
-        this.patterns[slot] = JSON.parse(JSON.stringify(this.grid));
+        this.patterns[memory_slot_index] = JSON.parse(JSON.stringify(this.grid));
     }
 
-    recallPattern(slot) {
-        if (this.patterns[slot]) {
-            this.grid = JSON.parse(JSON.stringify(this.patterns[slot]));
+    // WHAT: Loads a previously saved pattern from memory into the active grid.
+    // WHY: Allows the user to instantly switch between programmed sequences while playing live. It returns a boolean so the UI knows if it successfully loaded a valid pattern.
+    recallPattern(memory_slot_index) {
+        if (this.patterns[memory_slot_index]) {
+            this.grid = JSON.parse(JSON.stringify(this.patterns[memory_slot_index]));
             return true;
         }
         return false;

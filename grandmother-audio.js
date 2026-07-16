@@ -10,6 +10,8 @@
  *   S&H (random step) ─► Osc2 frequency (linear FM)
  */
 class MoogGrandmotherEngine {
+    // WHAT: Initializes the Moog Grandmother synthesizer engine and constructs the internal signal routing.
+    // WHY: We define all Tone.js audio nodes here so they are ready when the drone is started. This prevents audio glitches that might occur from creating nodes during playback.
     constructor() {
         this.isPlaying = false;
 
@@ -118,123 +120,134 @@ class MoogGrandmotherEngine {
         this._applyParams();
     }
 
+    // WHAT: Applies the normalized parameters (0-1) to the actual Tone.js synthesizer nodes.
+    // WHY: Tone.js requires specific real-world values (like Hertz or seconds). This function translates our abstract UI slider values into usable DSP numbers.
     _applyParams() {
-        const p = this.params;
+        const parameters_object = this.params;
 
         // Osc2 detune: map 0-1 → 0-50 cents
-        this.osc2.detune.value = p.detune * 50;
+        this.osc2.detune.value = parameters_object.detune * 50;
 
         // Noise level: map 0-1 → gain 0-0.4
-        this.noiseGain.gain.value = p.noiseLevel * 0.4;
+        this.noiseGain.gain.value = parameters_object.noiseLevel * 0.4;
 
         // VCF Cutoff: map 0-1 → 60-2000 Hz (low range for dark drone)
-        this.filter.frequency.value = 60 + (p.cutoff * 1940);
+        this.filter.frequency.value = 60 + (parameters_object.cutoff * 1940);
 
         // VCF Resonance: map 0-1 → Q 0.5-18
-        this.filter.Q.value = 0.5 + (p.resonance * 17.5);
+        this.filter.Q.value = 0.5 + (parameters_object.resonance * 17.5);
 
         // Envelope attack: map 0-1 → 0.1s-6s
-        this.envelope.attack = 0.1 + (p.attack * 5.9);
+        this.envelope.attack = 0.1 + (parameters_object.attack * 5.9);
 
         // Mod LFO rate: map 0-1 → 0.05-5 Hz
-        this.modLFO.frequency.value = 0.05 + (p.modRate * 4.95);
+        this.modLFO.frequency.value = 0.05 + (parameters_object.modRate * 4.95);
 
         // Mod Wheel (depth): controls how much the LFO affects filter and pitch
         // Filter mod depth: 0-500 Hz swing
-        this.modLFOFilterGain.gain.value = p.modWheel * 500;
+        this.modLFOFilterGain.gain.value = parameters_object.modWheel * 500;
         // Pitch mod depth: 0-8 Hz detune swing
-        this.modLFOPitchGain.gain.value = p.modWheel * 8;
+        this.modLFOPitchGain.gain.value = parameters_object.modWheel * 8;
 
-        // S&H depth → Osc2 FM: map 0-1 → gain 0-40
-        this.shGain.gain.value = p.shDepth * 40;
+        // S&H depth → Osc2 FM: map 0-1 → gain 0-500 for dramatic sci-fi computer FM tones
+        this.shGain.gain.value = parameters_object.shDepth * 500;
 
         // Master volume: map 0-1 → -30 to 0 dB
-        this.volume.volume.value = -30 + (p.volume * 30);
+        this.volume.volume.value = -30 + (parameters_object.volume * 30);
         
         // Reverb mix: 0 to 1
-        this.reverb.wet.value = p.reverb;
+        this.reverb.wet.value = parameters_object.reverb;
     }
 
-    setModRateHz(freq) {
+    // WHAT: Sets the LFO modulation rate explicitly in Hertz.
+    // WHY: This is used specifically when syncing the LFO to the sequencer tempo, bypassing the 0-1 slider normalization.
+    setModRateHz(frequency_in_hertz) {
         if (this.modLFO && this.modLFO.frequency) {
-            this.modLFO.frequency.setTargetAtTime(freq, Tone.now(), 0.05);
+            this.modLFO.frequency.setTargetAtTime(frequency_in_hertz, Tone.now(), 0.05);
         }
     }
 
+    // WHAT: Starts the asynchronous loop that generates random voltages for the Sample & Hold circuit.
+    // WHY: We use a standard JavaScript interval instead of Tone.Loop so the randomizer runs continuously regardless of whether the main sequencer transport is playing.
     _startSH() {
         // Stop any existing S&H loop
         this._stopSH();
 
         // S&H rate: map 0-1 → interval 2s down to 0.05s
-        const interval = 2 - (this.params.shRate * 1.95);
+        const interval_duration_seconds = 2 - (this.params.shRate * 1.95);
 
-        this.shLoop = new Tone.Loop((time) => {
+        this.shIntervalId = setInterval(() => {
             // Generate random voltage: -1 to 1
-            const randomValue = (Math.random() * 2) - 1;
-            this.shSignal.setValueAtTime(randomValue, time);
-        }, interval);
-
-        this.shLoop.start(0);
+            const random_voltage_value = (Math.random() * 2) - 1;
+            // setTargetAtTime adds a tiny glide to prevent harsh clicks at high depths
+            this.shSignal.setTargetAtTime(random_voltage_value, Tone.now(), 0.01);
+        }, interval_duration_seconds * 1000);
+        
+        // Trigger first value immediately
+        const initial_random_voltage_value = (Math.random() * 2) - 1;
+        this.shSignal.setValueAtTime(initial_random_voltage_value, Tone.now());
     }
 
+    // WHAT: Stops the running Sample & Hold generator loop.
+    // WHY: Prevents memory leaks and unnecessary background processing when the drone synthesizer is powered off.
     _stopSH() {
-        if (this.shLoop) {
-            this.shLoop.stop();
-            this.shLoop.dispose();
-            this.shLoop = null;
+        if (this.shIntervalId) {
+            clearInterval(this.shIntervalId);
+            this.shIntervalId = null;
         }
     }
 
-    setParam(key, value) {
-        this.params[key] = value;
+    // WHAT: Updates a single synthesizer parameter and reapplies the settings to the audio engine.
+    // WHY: Provides an easy API for the UI sliders to update internal values. It also handles edge cases like dynamically restarting the S&H loop if its rate changes while playing.
+    setParam(parameter_key_string, parameter_value) {
+        this.params[parameter_key_string] = parameter_value;
         this._applyParams();
 
         // If S&H rate changes while playing, restart the loop with new interval
-        if (key === 'shRate' && this.isPlaying) {
+        if (parameter_key_string === 'shRate' && this.isPlaying) {
             this._startSH();
         }
     }
 
+    // WHAT: Powers on the drone synthesizer by starting the oscillators (if they aren't already running) and opening the amplifier envelope.
+    // WHY: We leave the oscillators running continuously in the background to prevent audio clicks that happen when they are suddenly spun up. The envelope handles fading the sound in smoothly.
     startDrone() {
         if (this.isPlaying) return;
         this.isPlaying = true;
 
         this._applyParams();
 
-        this.osc1.start();
-        this.osc2.start();
-        this.noise.start();
-        this.modLFO.start();
+        if (!this.oscillatorsStarted) {
+            this.osc1.start();
+            this.osc2.start();
+            this.noise.start();
+            this.modLFO.start();
+            this.oscillatorsStarted = true;
+        }
+        
         this._startSH();
         this.envelope.triggerAttack();
     }
 
+    // WHAT: Powers off the drone synthesizer by closing the amplifier envelope and stopping the randomizer loop.
+    // WHY: We trigger the release phase of the envelope so the sound fades out naturally based on the current attack/release settings, rather than cutting off abruptly.
     stopDrone() {
         if (!this.isPlaying) return;
         this.isPlaying = false;
 
         this.envelope.triggerRelease();
-
-        // Let the release tail finish before stopping oscillators
-        setTimeout(() => {
-            if (!this.isPlaying) {
-                this.osc1.stop();
-                this.osc2.stop();
-                this.noise.stop();
-                this.modLFO.stop();
-                this._stopSH();
-            }
-        }, (this.envelope.release * 1000) + 500);
+        this._stopSH();
     }
 }
 
 window.GrandmotherEngine = new MoogGrandmotherEngine();
 
-// MIDI → Grandmother audio routing
-window.addEventListener('midiCCChange', (e) => {
-    const { parameter, scaledValue } = e.detail;
+// WHAT: Listens for custom MIDI control change events specifically targeted at the Moog Grandmother synthesizer.
+// WHY: We want external MIDI controllers to be able to turn the software knobs in real time without needing direct access to the GrandmotherEngine instance.
+window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
+    const { parameter, scaledValue } = midi_control_change_event_object.detail;
     if (parameter.startsWith('gm-')) {
-        const gmParam = parameter.replace('gm-', '');
-        window.GrandmotherEngine.setParam(gmParam, scaledValue);
+        const grandmother_parameter_name_string = parameter.replace('gm-', '');
+        window.GrandmotherEngine.setParam(grandmother_parameter_name_string, scaledValue);
     }
 });

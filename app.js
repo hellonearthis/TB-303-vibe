@@ -1,142 +1,146 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const seq = window.SequencerEngine;
-    const audio = window.AudioEngine;
+    const sequencer_engine_instance = window.SequencerEngine;
+    const audio_engine_instance = window.AudioEngine;
 
     // --- UI Elements ---
-    const gridContainer = document.getElementById('grid-container');
-    const playBtn = document.getElementById('btn-play');
-    const stopBtn = document.getElementById('btn-stop');
-    const clearBtn = document.getElementById('btn-clear');
-    const tempoInput = document.getElementById('tempo');
+    const grid_container_element = document.getElementById('grid-container');
+    const play_button_element = document.getElementById('btn-play');
+    const stop_button_element = document.getElementById('btn-stop');
+    const clear_button_element = document.getElementById('btn-clear');
+    const tempo_input_element = document.getElementById('tempo');
     
     // Synth Controls
-    const waveSelect = document.getElementById('wave-type');
-    const cutoffInput = document.getElementById('cutoff');
-    const resInput = document.getElementById('resonance');
-    const envModInput = document.getElementById('env-mod');
-    const decayInput = document.getElementById('decay');
-    const accentInput = document.getElementById('accent-amount');
+    const wave_select_element = document.getElementById('wave-type');
+    const cutoff_input_element = document.getElementById('cutoff');
+    const resonance_input_element = document.getElementById('resonance');
+    const envelope_modulation_input_element = document.getElementById('env-mod');
+    const decay_input_element = document.getElementById('decay');
+    const accent_amount_input_element = document.getElementById('accent-amount');
     
     // Pedals
-    const pedalOverdrive = document.getElementById('pedal-overdrive');
-    const pedalDelay = document.getElementById('pedal-delay');
-    const pedalPhaser = document.getElementById('pedal-phaser');
+    const pedal_overdrive_element = document.getElementById('pedal-overdrive');
+    const pedal_delay_element = document.getElementById('pedal-delay');
+    const pedal_phaser_element = document.getElementById('pedal-phaser');
 
 
 
     // --- Build Grid UI ---
+    // WHAT: Renders the entire 16-step sequencer grid dynamically based on the current scale and internal state.
+    // WHY: We use a data-driven approach. The Javascript model is the source of truth, and this function simply draws the DOM elements to match the model. It destroys and rebuilds the grid on demand.
     function renderGrid() {
-        gridContainer.innerHTML = '';
+        grid_container_element.innerHTML = '';
         
         // Notes rows
-        seq.scale.forEach(note => {
-            const row = document.createElement('div');
-            row.className = 'grid-row';
+        sequencer_engine_instance.scale.forEach(musical_note_string => {
+            const row_element_node = document.createElement('div');
+            row_element_node.className = 'grid-row';
             
-            const label = document.createElement('div');
-            label.className = 'grid-label';
-            label.textContent = note;
-            row.appendChild(label);
+            const label_element_node = document.createElement('div');
+            label_element_node.className = 'grid-label';
+            label_element_node.textContent = musical_note_string;
+            row_element_node.appendChild(label_element_node);
 
-            for (let i = 0; i < seq.steps; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell note-cell';
-                cell.dataset.step = i;
-                cell.dataset.note = note;
+            for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
+                const cell_element_node = document.createElement('div');
+                cell_element_node.className = 'grid-cell note-cell';
+                cell_element_node.dataset.step = step_index_number;
+                cell_element_node.dataset.note = musical_note_string;
                 
-                if (seq.grid[i].note === note) {
-                    cell.classList.add('active-note');
+                if (sequencer_engine_instance.grid[step_index_number].note === musical_note_string) {
+                    cell_element_node.classList.add('active-note');
                 }
 
-                cell.addEventListener('click', () => {
-                    seq.toggleNote(i, note);
+                cell_element_node.addEventListener('click', () => {
+                    sequencer_engine_instance.toggleNote(step_index_number, musical_note_string);
                     renderGrid(); // Re-render to clear other notes in column
                 });
 
-                row.appendChild(cell);
+                row_element_node.appendChild(cell_element_node);
             }
-            gridContainer.appendChild(row);
+            grid_container_element.appendChild(row_element_node);
         });
 
         // Slide Row
-        const slideRow = document.createElement('div');
-        slideRow.className = 'grid-row';
-        const slideLabel = document.createElement('div');
-        slideLabel.className = 'grid-label';
-        slideLabel.textContent = 'SLIDE';
-        slideRow.appendChild(slideLabel);
+        const slide_row_element = document.createElement('div');
+        slide_row_element.className = 'grid-row';
+        const slide_label_element = document.createElement('div');
+        slide_label_element.className = 'grid-label';
+        slide_label_element.textContent = 'SLIDE';
+        slide_row_element.appendChild(slide_label_element);
         
-        for (let i = 0; i < seq.steps; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell slide-cell';
-            if (seq.grid[i].slide) cell.classList.add('active-slide');
+        for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
+            const cell_element_node = document.createElement('div');
+            cell_element_node.className = 'grid-cell slide-cell';
+            if (sequencer_engine_instance.grid[step_index_number].slide) cell_element_node.classList.add('active-slide');
             
-            cell.addEventListener('click', () => {
-                seq.toggleSlide(i);
-                cell.classList.toggle('active-slide');
+            cell_element_node.addEventListener('click', () => {
+                sequencer_engine_instance.toggleSlide(step_index_number);
+                cell_element_node.classList.toggle('active-slide');
             });
-            slideRow.appendChild(cell);
+            slide_row_element.appendChild(cell_element_node);
         }
-        gridContainer.appendChild(slideRow);
+        grid_container_element.appendChild(slide_row_element);
 
         // Accent Row
-        const accRow = document.createElement('div');
-        accRow.className = 'grid-row';
-        const accLabel = document.createElement('div');
-        accLabel.className = 'grid-label';
-        accLabel.textContent = 'ACCENT';
-        accRow.appendChild(accLabel);
+        const accent_row_element = document.createElement('div');
+        accent_row_element.className = 'grid-row';
+        const accent_label_element = document.createElement('div');
+        accent_label_element.className = 'grid-label';
+        accent_label_element.textContent = 'ACCENT';
+        accent_row_element.appendChild(accent_label_element);
         
-        for (let i = 0; i < seq.steps; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell accent-cell';
-            if (seq.grid[i].accent) cell.classList.add('active-accent');
+        for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
+            const cell_element_node = document.createElement('div');
+            cell_element_node.className = 'grid-cell accent-cell';
+            if (sequencer_engine_instance.grid[step_index_number].accent) cell_element_node.classList.add('active-accent');
             
-            cell.addEventListener('click', () => {
-                seq.toggleAccent(i);
+            cell_element_node.addEventListener('click', () => {
+                sequencer_engine_instance.toggleAccent(step_index_number);
                 renderGrid(); // Re-render to clear mutually exclusive ghost
             });
-            accRow.appendChild(cell);
+            accent_row_element.appendChild(cell_element_node);
         }
-        gridContainer.appendChild(accRow);
+        grid_container_element.appendChild(accent_row_element);
 
         // Ghost Row
-        const ghostRow = document.createElement('div');
-        ghostRow.className = 'grid-row';
-        const ghostLabel = document.createElement('div');
-        ghostLabel.className = 'grid-label';
-        ghostLabel.textContent = 'GHOST';
-        ghostRow.appendChild(ghostLabel);
+        const ghost_row_element = document.createElement('div');
+        ghost_row_element.className = 'grid-row';
+        const ghost_label_element = document.createElement('div');
+        ghost_label_element.className = 'grid-label';
+        ghost_label_element.textContent = 'GHOST';
+        ghost_row_element.appendChild(ghost_label_element);
         
-        for (let i = 0; i < seq.steps; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'grid-cell ghost-cell';
-            if (seq.grid[i].ghost) cell.classList.add('active-ghost');
+        for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
+            const cell_element_node = document.createElement('div');
+            cell_element_node.className = 'grid-cell ghost-cell';
+            if (sequencer_engine_instance.grid[step_index_number].ghost) cell_element_node.classList.add('active-ghost');
             
-            cell.addEventListener('click', () => {
-                seq.toggleGhost(i);
+            cell_element_node.addEventListener('click', () => {
+                sequencer_engine_instance.toggleGhost(step_index_number);
                 renderGrid(); // Re-render to clear mutually exclusive accent
             });
-            ghostRow.appendChild(cell);
+            ghost_row_element.appendChild(cell_element_node);
         }
-        gridContainer.appendChild(ghostRow);
+        grid_container_element.appendChild(ghost_row_element);
     }
 
     // --- Keyboard Shortcuts (1-9) ---
-    window.addEventListener('keydown', (e) => {
+    // WHAT: Listens for number keys (1-9) to save or recall patterns. Shift + number saves, just number recalls.
+    // WHY: Enables rapid live performance and pattern switching without taking hands off the keyboard. It specifically ignores inputs if the user is typing in a text field so they don't accidentally switch patterns.
+    window.addEventListener('keydown', (event_object) => {
         // Ignore if user is typing in a text/number input (but allow if they are on a range slider or checkbox)
-        if (e.target.tagName === 'INPUT' && (e.target.type === 'text' || e.target.type === 'number')) return;
+        if (event_object.target.tagName === 'INPUT' && (event_object.target.type === 'text' || event_object.target.type === 'number')) return;
 
-        if (e.code && e.code.startsWith('Digit')) {
+        if (event_object.code && event_object.code.startsWith('Digit')) {
             // e.key might be '!' if shift is pressed, so extract number from e.code
-            const key = parseInt(e.code.replace('Digit', ''));
-            if (key >= 1 && key <= 9) {
-                if (e.shiftKey) {
+            const key_integer_value = parseInt(event_object.code.replace('Digit', ''));
+            if (key_integer_value >= 1 && key_integer_value <= 9) {
+                if (event_object.shiftKey) {
                     // Save pattern
-                    seq.savePattern(key);
+                    sequencer_engine_instance.savePattern(key_integer_value);
                 } else {
                     // Recall pattern
-                    if (seq.recallPattern(key)) {
+                    if (sequencer_engine_instance.recallPattern(key_integer_value)) {
                         renderGrid();
                     }
                 }
@@ -145,94 +149,100 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Sequencer UI Sync ---
-    seq.setUICallback((stepIndex) => {
+    // WHAT: Visually updates the CSS classes on the grid to highlight the currently playing step column.
+    // WHY: Provides vital visual feedback to the user so they can see exactly where they are in the 16-step loop. This callback is triggered directly by the Tone.js transport for sample-accurate timing.
+    sequencer_engine_instance.setUICallback((current_step_index_number) => {
         // Remove playhead from all cells
-        document.querySelectorAll('.grid-cell').forEach(c => c.classList.remove('playhead'));
+        document.querySelectorAll('.grid-cell').forEach(cell_element_node => cell_element_node.classList.remove('playhead'));
         
-        if (stepIndex >= 0) {
+        if (current_step_index_number >= 0) {
             // Add playhead to current column
             // We have 15 rows total (13 notes + slide + accent)
             // Selecting via nth-child logic can be tricky with grid, so we filter by dataset or index
             
             // Note cells
-            const noteCells = document.querySelectorAll(`.note-cell:nth-child(${stepIndex + 2})`);
-            noteCells.forEach(c => c.classList.add('playhead'));
+            const note_cells_node_list = document.querySelectorAll(`.note-cell:nth-child(${current_step_index_number + 2})`);
+            note_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
             
             // Slide cell
-            const slideCells = document.querySelectorAll(`.slide-cell:nth-child(${stepIndex + 2})`);
-            slideCells.forEach(c => c.classList.add('playhead'));
+            const slide_cells_node_list = document.querySelectorAll(`.slide-cell:nth-child(${current_step_index_number + 2})`);
+            slide_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
             
             // Accent cell
-            const accCells = document.querySelectorAll(`.accent-cell:nth-child(${stepIndex + 2})`);
-            accCells.forEach(c => c.classList.add('playhead'));
+            const accent_cells_node_list = document.querySelectorAll(`.accent-cell:nth-child(${current_step_index_number + 2})`);
+            accent_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
             
             // Ghost cell
-            const ghostCells = document.querySelectorAll(`.ghost-cell:nth-child(${stepIndex + 2})`);
-            ghostCells.forEach(c => c.classList.add('playhead'));
+            const ghost_cells_node_list = document.querySelectorAll(`.ghost-cell:nth-child(${current_step_index_number + 2})`);
+            ghost_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
         }
     });
 
     // --- Event Listeners ---
-    playBtn.addEventListener('click', async () => {
+    play_button_element.addEventListener('click', async () => {
         await Tone.start(); // Required by browsers
-        seq.start();
+        sequencer_engine_instance.start();
     });
 
-    stopBtn.addEventListener('click', () => {
-        seq.stop();
+    stop_button_element.addEventListener('click', () => {
+        sequencer_engine_instance.stop();
     });
 
-    clearBtn.addEventListener('click', () => {
-        seq.clearGrid();
+    clear_button_element.addEventListener('click', () => {
+        sequencer_engine_instance.clearGrid();
         renderGrid();
     });
 
-    tempoInput.addEventListener('change', (e) => {
-        seq.setBpm(parseFloat(e.target.value));
+    tempo_input_element.addEventListener('change', (event_object) => {
+        sequencer_engine_instance.setBpm(parseFloat(event_object.target.value));
         if (typeof window.updateGmSyncRate === 'function') window.updateGmSyncRate();
     });
 
     // Synth control listeners
-    waveSelect.addEventListener('change', (e) => audio.setParam('wave', e.target.value));
-    cutoffInput.addEventListener('input', (e) => audio.setParam('cutoff', parseFloat(e.target.value)));
-    resInput.addEventListener('input', (e) => audio.setParam('resonance', parseFloat(e.target.value)));
-    envModInput.addEventListener('input', (e) => audio.setParam('envMod', parseFloat(e.target.value)));
-    decayInput.addEventListener('input', (e) => audio.setParam('decay', parseFloat(e.target.value)));
-    accentInput.addEventListener('input', (e) => audio.setParam('accentAmount', parseFloat(e.target.value)));
+    // WHAT: Routes UI slider changes directly into the TB-303 audio engine.
+    // WHY: Basic event binding to make the knobs actually change the sound.
+    wave_select_element.addEventListener('change', (event_object) => audio_engine_instance.setParam('wave', event_object.target.value));
+    cutoff_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('cutoff', parseFloat(event_object.target.value)));
+    resonance_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('resonance', parseFloat(event_object.target.value)));
+    envelope_modulation_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('envMod', parseFloat(event_object.target.value)));
+    decay_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('decay', parseFloat(event_object.target.value)));
+    accent_amount_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('accentAmount', parseFloat(event_object.target.value)));
 
     // Pedal listeners
-    pedalOverdrive.addEventListener('change', (e) => audio.setPedal('overdrive', e.target.checked));
-    pedalDelay.addEventListener('change', (e) => audio.setPedal('delay', e.target.checked));
-    pedalPhaser.addEventListener('change', (e) => audio.setPedal('phaser', e.target.checked));
+    pedal_overdrive_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('overdrive', event_object.target.checked));
+    pedal_delay_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('delay', event_object.target.checked));
+    pedal_phaser_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('phaser', event_object.target.checked));
 
     // ==========================================
     // MOOG GRANDMOTHER — Drone Synth Controls
     // ==========================================
-    const gm = window.GrandmotherEngine;
-    const gmSection = document.getElementById('grandmother-section');
-    const droneIndicator = document.getElementById('drone-indicator');
-    const btnDroneToggle = document.getElementById('btn-drone-toggle');
+    const grandmother_engine_instance = window.GrandmotherEngine;
+    const grandmother_section_element = document.getElementById('grandmother-section');
+    const drone_indicator_element = document.getElementById('drone-indicator');
+    const button_drone_toggle_element = document.getElementById('btn-drone-toggle');
 
     // Drone Toggle
-    btnDroneToggle.addEventListener('click', async () => {
+    // WHAT: Turns the Moog Grandmother synthesizer on or off and updates the UI styling.
+    // WHY: Since it's a drone synth, it doesn't wait for sequencer notes. The user manually powers it on, so we need a dedicated button and visual state changes.
+    button_drone_toggle_element.addEventListener('click', async () => {
         await Tone.start();
-        if (!gm.isPlaying) {
-            gm.startDrone();
-            gmSection.classList.add('drone-active');
-            droneIndicator.classList.add('active');
-            btnDroneToggle.classList.remove('btn-drone-off');
-            btnDroneToggle.textContent = 'DRONE: ON';
+        if (!grandmother_engine_instance.isPlaying) {
+            grandmother_engine_instance.startDrone();
+            grandmother_section_element.classList.add('drone-active');
+            drone_indicator_element.classList.add('active');
+            button_drone_toggle_element.classList.remove('btn-drone-off');
+            button_drone_toggle_element.textContent = 'DRONE: ON';
         } else {
-            gm.stopDrone();
-            gmSection.classList.remove('drone-active');
-            droneIndicator.classList.remove('active');
-            btnDroneToggle.classList.add('btn-drone-off');
-            btnDroneToggle.textContent = 'DRONE: OFF';
+            grandmother_engine_instance.stopDrone();
+            grandmother_section_element.classList.remove('drone-active');
+            drone_indicator_element.classList.remove('active');
+            button_drone_toggle_element.classList.add('btn-drone-off');
+            button_drone_toggle_element.textContent = 'DRONE: OFF';
         }
     });
 
     // Grandmother knob controls — map element IDs to engine param keys
-    const gmControls = [
+    const grandmother_controls_array = [
         { id: 'gm-detune',     param: 'detune',    valId: 'gm-detune-val' },
         { id: 'gm-noise',      param: 'noiseLevel', valId: 'gm-noise-val' },
         { id: 'gm-cutoff',     param: 'cutoff',    valId: 'gm-cutoff-val' },
@@ -246,26 +256,26 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'gm-reverb',     param: 'reverb',    valId: 'gm-reverb-val' }
     ];
 
-    gmControls.forEach(({ id, param, valId }) => {
-        const input = document.getElementById(id);
-        const valDisplay = document.getElementById(valId);
+    grandmother_controls_array.forEach(({ id, param, valId }) => {
+        const input_element_node = document.getElementById(id);
+        const value_display_element_node = document.getElementById(valId);
 
-        if (input) {
-            input.addEventListener('input', (e) => {
-                const value = parseFloat(e.target.value);
-                gm.setParam(param, value);
-                valDisplay.textContent = Math.round(value * 100) + '%';
+        if (input_element_node) {
+            input_element_node.addEventListener('input', (event_object) => {
+                const slider_value_float = parseFloat(event_object.target.value);
+                grandmother_engine_instance.setParam(param, slider_value_float);
+                value_display_element_node.textContent = Math.round(slider_value_float * 100) + '%';
             });
         }
     });
 
     // --- LFO BPM Sync ---
-    const gmModSyncCb = document.getElementById('gm-mod-sync');
-    const gmModRateSlider = document.getElementById('gm-mod-rate');
-    const gmSyncRateSlider = document.getElementById('gm-sync-rate');
-    const gmModRateVal = document.getElementById('gm-mod-rate-val');
+    const grandmother_mod_sync_checkbox_element = document.getElementById('gm-mod-sync');
+    const grandmother_mod_rate_slider_element = document.getElementById('gm-mod-rate');
+    const grandmother_sync_rate_slider_element = document.getElementById('gm-sync-rate');
+    const grandmother_mod_rate_value_element = document.getElementById('gm-mod-rate-val');
 
-    const gmSyncRates = [
+    const grandmother_sync_rates_array = [
         { label: '4 Bars', beats: 16 },
         { label: '2 Bars', beats: 8 },
         { label: '1 Bar', beats: 4 },
@@ -278,232 +288,247 @@ document.addEventListener('DOMContentLoaded', () => {
         { label: '1/32 Note', beats: 0.125 }
     ];
 
+    // WHAT: Recalculates the LFO frequency based on the master sequencer tempo and the chosen musical subdivision.
+    // WHY: When BPM sync is enabled, the LFO needs to wobble perfectly in time with the drums/bassline instead of running freely.
     window.updateGmSyncRate = function() {
-        if (!gmModSyncCb || !gmModSyncCb.checked) return;
-        const bpm = parseFloat(tempoInput.value) || 120;
-        const index = parseInt(gmSyncRateSlider.value);
-        const rate = gmSyncRates[index];
-        const freq = (bpm / 60) / rate.beats;
-        gm.setModRateHz(freq);
-        if (gmModRateVal) gmModRateVal.textContent = rate.label;
+        if (!grandmother_mod_sync_checkbox_element || !grandmother_mod_sync_checkbox_element.checked) return;
+        const current_beats_per_minute = parseFloat(tempo_input_element.value) || 120;
+        const selected_sync_index = parseInt(grandmother_sync_rate_slider_element.value);
+        const sync_rate_object = grandmother_sync_rates_array[selected_sync_index];
+        const calculated_frequency_hertz = (current_beats_per_minute / 60) / sync_rate_object.beats;
+        grandmother_engine_instance.setModRateHz(calculated_frequency_hertz);
+        if (grandmother_mod_rate_value_element) grandmother_mod_rate_value_element.textContent = sync_rate_object.label;
     };
 
-    if (gmModSyncCb) {
-        gmModSyncCb.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                gmModRateSlider.style.display = 'none';
-                gmSyncRateSlider.style.display = 'block';
+    if (grandmother_mod_sync_checkbox_element) {
+        grandmother_mod_sync_checkbox_element.addEventListener('change', (event_object) => {
+            if (event_object.target.checked) {
+                grandmother_mod_rate_slider_element.style.display = 'none';
+                grandmother_sync_rate_slider_element.style.display = 'block';
                 window.updateGmSyncRate();
             } else {
-                gmModRateSlider.style.display = 'block';
-                gmSyncRateSlider.style.display = 'none';
-                const value = parseFloat(gmModRateSlider.value);
-                gm.setParam('modRate', value);
-                if (gmModRateVal) gmModRateVal.textContent = Math.round(value * 100) + '%';
+                grandmother_mod_rate_slider_element.style.display = 'block';
+                grandmother_sync_rate_slider_element.style.display = 'none';
+                const slider_value_float = parseFloat(grandmother_mod_rate_slider_element.value);
+                grandmother_engine_instance.setParam('modRate', slider_value_float);
+                if (grandmother_mod_rate_value_element) grandmother_mod_rate_value_element.textContent = Math.round(slider_value_float * 100) + '%';
             }
         });
-        gmSyncRateSlider.addEventListener('input', window.updateGmSyncRate);
+        grandmother_sync_rate_slider_element.addEventListener('input', window.updateGmSyncRate);
+        grandmother_mod_sync_checkbox_element.dispatchEvent(new Event('change')); // Sync initial state
     }
 
-    const gmAuxSwitch = document.getElementById('gm-aux');
-    if (gmAuxSwitch) {
-        gmAuxSwitch.addEventListener('change', (e) => {
+    const grandmother_aux_switch_element = document.getElementById('gm-aux');
+    if (grandmother_aux_switch_element) {
+        // WHAT: Routes the main TB-303 output into the Grandmother mixer.
+        // WHY: Acts like plugging a patch cable between the two synths, allowing the 303 to be processed by the Grandmother's filter and reverb.
+        grandmother_aux_switch_element.addEventListener('change', (event_object) => {
             if (window.AudioEngine) {
-                if (e.target.checked) {
+                if (event_object.target.checked) {
                     window.AudioEngine.volume.disconnect(Tone.Destination);
-                    window.AudioEngine.volume.connect(gm.extInput);
+                    window.AudioEngine.volume.connect(grandmother_engine_instance.extInput);
                 } else {
-                    window.AudioEngine.volume.disconnect(gm.extInput);
+                    window.AudioEngine.volume.disconnect(grandmother_engine_instance.extInput);
                     window.AudioEngine.volume.connect(Tone.Destination);
                 }
             }
         });
+        grandmother_aux_switch_element.dispatchEvent(new Event('change')); // Sync initial state
     }
 
     // ==========================================
     // MIDI CONTROLLER INTEGRATION
     // ==========================================
-    const midi = window.MIDIController;
-    const midiDot = document.getElementById('midi-dot');
-    const midiLabel = document.getElementById('midi-label');
-    const midiLearnBtn = document.getElementById('btn-midi-learn');
-    const midiResetBtn = document.getElementById('btn-midi-reset');
+    const midi_controller_instance = window.MIDIController;
+    const midi_status_indicator_dot_element = document.getElementById('midi-dot');
+    const midi_status_label_element = document.getElementById('midi-label');
+    const button_midi_learn_element = document.getElementById('btn-midi-learn');
+    const button_midi_reset_element = document.getElementById('btn-midi-reset');
 
     // --- MIDI Status Indicator ---
-    window.addEventListener('midiDeviceChange', (e) => {
-        const { type, device } = e.detail;
-        midiDot.classList.remove('connected', 'unsupported');
+    window.addEventListener('midiDeviceChange', (event_object) => {
+        const { type, device } = event_object.detail;
+        midi_status_indicator_dot_element.classList.remove('connected', 'unsupported');
 
         if (type === 'connected') {
-            midiDot.classList.add('connected');
-            midiLabel.textContent = device ? device.name : 'MIDI';
+            midi_status_indicator_dot_element.classList.add('connected');
+            midi_status_label_element.textContent = device ? device.name : 'MIDI';
         } else if (type === 'disconnected') {
             // Check if any devices still connected
-            if (midi.isConnected) {
-                midiDot.classList.add('connected');
-                midiLabel.textContent = midi.deviceNames[0] || 'MIDI';
+            if (midi_controller_instance.isConnected) {
+                midi_status_indicator_dot_element.classList.add('connected');
+                midi_status_label_element.textContent = midi_controller_instance.deviceNames[0] || 'MIDI';
             } else {
-                midiLabel.textContent = 'MIDI';
+                midi_status_label_element.textContent = 'MIDI';
             }
         } else if (type === 'unsupported') {
-            midiDot.classList.add('unsupported');
-            midiLabel.textContent = 'NO MIDI';
+            midi_status_indicator_dot_element.classList.add('unsupported');
+            midi_status_label_element.textContent = 'NO MIDI';
         }
     });
 
     // --- Learnable Parameter Registry ---
     // Maps parameter names to { element, inputId, type }
-    const learnableParams = {};
+    const learnable_parameters_registry_object = {};
 
     // TB-303 knobs
-    const tb303Learnables = [
-        { param: 'cutoff',       inputId: 'cutoff',         element: cutoffInput.closest('.knob-group') },
-        { param: 'resonance',    inputId: 'resonance',      element: resInput.closest('.knob-group') },
-        { param: 'envMod',       inputId: 'env-mod',        element: envModInput.closest('.knob-group') },
-        { param: 'decay',        inputId: 'decay',          element: decayInput.closest('.knob-group') },
-        { param: 'accentAmount', inputId: 'accent-amount',  element: accentInput.closest('.knob-group') },
+    const tb303_learnable_parameters_array = [
+        { param: 'cutoff',       inputId: 'cutoff',         element: cutoff_input_element.closest('.knob-group') },
+        { param: 'resonance',    inputId: 'resonance',      element: resonance_input_element.closest('.knob-group') },
+        { param: 'envMod',       inputId: 'env-mod',        element: envelope_modulation_input_element.closest('.knob-group') },
+        { param: 'decay',        inputId: 'decay',          element: decay_input_element.closest('.knob-group') },
+        { param: 'accentAmount', inputId: 'accent-amount',  element: accent_amount_input_element.closest('.knob-group') },
     ];
 
-    tb303Learnables.forEach(({ param, inputId, element }) => {
-        learnableParams[param] = { element, inputId, type: 'range' };
+    tb303_learnable_parameters_array.forEach(({ param, inputId, element }) => {
+        learnable_parameters_registry_object[param] = { element, inputId, type: 'range' };
     });
 
     // TB-303 pedals
-    const pedalLearnables = [
-        { param: 'pedal-overdrive', inputId: 'pedal-overdrive', element: pedalOverdrive.closest('.pedal') },
-        { param: 'pedal-delay',     inputId: 'pedal-delay',     element: pedalDelay.closest('.pedal') },
-        { param: 'pedal-phaser',    inputId: 'pedal-phaser',    element: pedalPhaser.closest('.pedal') },
+    const pedal_learnable_parameters_array = [
+        { param: 'pedal-overdrive', inputId: 'pedal-overdrive', element: pedal_overdrive_element.closest('.pedal') },
+        { param: 'pedal-delay',     inputId: 'pedal-delay',     element: pedal_delay_element.closest('.pedal') },
+        { param: 'pedal-phaser',    inputId: 'pedal-phaser',    element: pedal_phaser_element.closest('.pedal') },
     ];
 
-    pedalLearnables.forEach(({ param, inputId, element }) => {
-        learnableParams[param] = { element, inputId, type: 'toggle' };
+    pedal_learnable_parameters_array.forEach(({ param, inputId, element }) => {
+        learnable_parameters_registry_object[param] = { element, inputId, type: 'toggle' };
     });
 
     // Transport
-    learnableParams['transport-play'] = { element: playBtn, inputId: null, type: 'transport' };
-    learnableParams['transport-stop'] = { element: stopBtn, inputId: null, type: 'transport' };
+    learnable_parameters_registry_object['transport-play'] = { element: play_button_element, inputId: null, type: 'transport' };
+    learnable_parameters_registry_object['transport-stop'] = { element: stop_button_element, inputId: null, type: 'transport' };
 
     // Grandmother knobs
-    gmControls.forEach(({ id, param }) => {
-        const element = document.getElementById(id)?.closest('.gm-knob-group');
-        if (element) {
-            learnableParams[`gm-${param}`] = { element, inputId: id, type: 'range' };
+    grandmother_controls_array.forEach(({ id, param }) => {
+        const element_node = document.getElementById(id)?.closest('.gm-knob-group');
+        if (element_node) {
+            learnable_parameters_registry_object[`gm-${param}`] = { element: element_node, inputId: id, type: 'range' };
         }
     });
 
     // --- MIDI Learn Mode ---
-    let midiLearnActive = false;
-    let currentListeningElement = null;
-    let learnTooltip = null;
+    let is_midi_learn_active_boolean = false;
+    let currently_listening_element_node = null;
+    let tooltip_element_node = null;
 
-    function showTooltip(text) {
+    // WHAT: Displays a floating tooltip to guide the user during the MIDI mapping process.
+    // WHY: Without this, the user wouldn't know if the app is waiting for their input or if their knob tweak was successfully registered.
+    function showTooltip(tooltip_text_string) {
         removeTooltip();
-        learnTooltip = document.createElement('div');
-        learnTooltip.className = 'midi-learn-tooltip';
-        learnTooltip.textContent = text;
-        document.body.appendChild(learnTooltip);
+        tooltip_element_node = document.createElement('div');
+        tooltip_element_node.className = 'midi-learn-tooltip';
+        tooltip_element_node.textContent = tooltip_text_string;
+        document.body.appendChild(tooltip_element_node);
     }
 
+    // WHAT: Destroys the MIDI learn tooltip from the DOM.
+    // WHY: Keeps the UI clean when learning is not active.
     function removeTooltip() {
-        if (learnTooltip) {
-            learnTooltip.remove();
-            learnTooltip = null;
+        if (tooltip_element_node) {
+            tooltip_element_node.remove();
+            tooltip_element_node = null;
         }
     }
 
+    // WHAT: Toggles the global MIDI Learn state and updates the UI (flashing buttons, cursor changes).
+    // WHY: Puts the entire application into a special state where clicks no longer interact with the synth, but instead select UI elements to be mapped to hardware controllers.
     function toggleLearnMode() {
-        midiLearnActive = !midiLearnActive;
-        document.body.classList.toggle('midi-learn-active', midiLearnActive);
-        midiLearnBtn.classList.toggle('active', midiLearnActive);
+        is_midi_learn_active_boolean = !is_midi_learn_active_boolean;
+        document.body.classList.toggle('midi-learn-active', is_midi_learn_active_boolean);
+        button_midi_learn_element.classList.toggle('active', is_midi_learn_active_boolean);
 
-        if (midiLearnActive) {
+        if (is_midi_learn_active_boolean) {
             showTooltip('MIDI LEARN: Click a control to assign...');
         } else {
             // Cancel any active listening
-            if (currentListeningElement) {
-                currentListeningElement.classList.remove('midi-listening');
-                currentListeningElement = null;
+            if (currently_listening_element_node) {
+                currently_listening_element_node.classList.remove('midi-listening');
+                currently_listening_element_node = null;
             }
-            midi.exitLearnMode();
+            midi_controller_instance.exitLearnMode();
             removeTooltip();
         }
     }
 
-    midiLearnBtn.addEventListener('click', toggleLearnMode);
+    button_midi_learn_element.addEventListener('click', toggleLearnMode);
 
-    midiResetBtn.addEventListener('click', () => {
-        midi.resetMap();
+    button_midi_reset_element.addEventListener('click', () => {
+        midi_controller_instance.resetMap();
         // Exit learn mode if active
-        if (midiLearnActive) toggleLearnMode();
+        if (is_midi_learn_active_boolean) toggleLearnMode();
         updateMappedIndicators();
     });
 
     // Escape key exits learn mode
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && midiLearnActive) {
+    window.addEventListener('keydown', (event_object) => {
+        if (event_object.key === 'Escape' && is_midi_learn_active_boolean) {
             toggleLearnMode();
         }
     });
 
     // Click handler for learnable elements
-    function handleLearnClick(paramName) {
-        if (!midiLearnActive) return;
+    // WHAT: Prepares a specific UI parameter to listen for the next incoming MIDI hardware message.
+    // WHY: This happens when the user clicks a knob while in Learn Mode. It highlights the knob and tells the MIDI controller class what software parameter it should bind to.
+    function handleLearnClick(software_parameter_name_string) {
+        if (!is_midi_learn_active_boolean) return;
 
         // Clear previous listening state
-        if (currentListeningElement) {
-            currentListeningElement.classList.remove('midi-listening');
+        if (currently_listening_element_node) {
+            currently_listening_element_node.classList.remove('midi-listening');
         }
 
-        const learnable = learnableParams[paramName];
-        if (!learnable) return;
+        const learnable_parameter_object = learnable_parameters_registry_object[software_parameter_name_string];
+        if (!learnable_parameter_object) return;
 
-        currentListeningElement = learnable.element;
-        currentListeningElement.classList.add('midi-listening');
+        currently_listening_element_node = learnable_parameter_object.element;
+        currently_listening_element_node.classList.add('midi-listening');
 
-        midi.enterLearnMode(paramName);
-        showTooltip(`Move a MIDI control for: ${paramName.toUpperCase()}`);
+        midi_controller_instance.enterLearnMode(software_parameter_name_string);
+        showTooltip(`Move a MIDI control for: ${software_parameter_name_string.toUpperCase()}`);
     }
 
     // Attach learn-mode click handlers to all learnable parameters
-    Object.entries(learnableParams).forEach(([paramName, { element }]) => {
+    Object.entries(learnable_parameters_registry_object).forEach(([software_parameter_name_string, { element }]) => {
         if (!element) return;
-        element.addEventListener('click', (e) => {
-            if (midiLearnActive) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLearnClick(paramName);
+        element.addEventListener('click', (event_object) => {
+            if (is_midi_learn_active_boolean) {
+                event_object.preventDefault();
+                event_object.stopPropagation();
+                handleLearnClick(software_parameter_name_string);
             }
         }, true); // Use capture to intercept before normal handlers
     });
 
     // Learn complete → update UI
-    window.addEventListener('midiLearnComplete', (e) => {
-        const { parameter, sourceId } = e.detail;
+    window.addEventListener('midiLearnComplete', (event_object) => {
+        const { parameter, sourceId } = event_object.detail;
         console.log(`[UI] MIDI Learn complete: ${sourceId} → ${parameter}`);
 
-        if (currentListeningElement) {
-            currentListeningElement.classList.remove('midi-listening');
-            currentListeningElement = null;
+        if (currently_listening_element_node) {
+            currently_listening_element_node.classList.remove('midi-listening');
+            currently_listening_element_node = null;
         }
 
-        const sourceLabel = midi.getSourceLabel(sourceId);
-        showTooltip(`✓ Mapped ${sourceLabel} → ${parameter.toUpperCase()}`);
+        const formatted_source_label_string = midi_controller_instance.getSourceLabel(sourceId);
+        showTooltip(`✓ Mapped ${formatted_source_label_string} → ${parameter.toUpperCase()}`);
 
         // Auto-exit learn mode after a successful mapping
         setTimeout(() => {
-            if (midiLearnActive) toggleLearnMode();
+            if (is_midi_learn_active_boolean) toggleLearnMode();
         }, 1500);
 
         updateMappedIndicators();
     });
 
-    // Update blue dot indicators on mapped controls
+    // WHAT: Iterates over all learnable UI elements and adds a visual blue dot to them if they are currently mapped to a hardware controller.
+    // WHY: Gives the user immediate visual feedback on which knobs are controlled by their MIDI keyboard.
     function updateMappedIndicators() {
-        Object.entries(learnableParams).forEach(([paramName, { element }]) => {
+        Object.entries(learnable_parameters_registry_object).forEach(([software_parameter_name_string, { element }]) => {
             if (!element) return;
-            const source = midi.getSourceForParameter(paramName);
-            element.classList.toggle('midi-mapped', !!source);
-            element.style.position = source ? 'relative' : '';
+            const mapped_source_id_string = midi_controller_instance.getSourceForParameter(software_parameter_name_string);
+            element.classList.toggle('midi-mapped', !!mapped_source_id_string);
+            element.style.position = mapped_source_id_string ? 'relative' : '';
         });
     }
 
@@ -512,76 +537,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MIDI CC → UI Slider Sync ---
     // When a hardware control moves, update the on-screen slider position
-    const tb303InputMap = {
-        'cutoff':       cutoffInput,
-        'resonance':    resInput,
-        'envMod':       envModInput,
-        'decay':        decayInput,
-        'accentAmount': accentInput,
+    const tb303_input_mapping_object = {
+        'cutoff':       cutoff_input_element,
+        'resonance':    resonance_input_element,
+        'envMod':       envelope_modulation_input_element,
+        'decay':        decay_input_element,
+        'accentAmount': accent_amount_input_element,
     };
 
-    window.addEventListener('midiCCChange', (e) => {
-        const { parameter, scaledValue } = e.detail;
+    window.addEventListener('midiCCChange', (event_object) => {
+        const { parameter, scaledValue } = event_object.detail;
 
         // TB-303 sliders
-        if (tb303InputMap[parameter]) {
-            tb303InputMap[parameter].value = scaledValue;
+        if (tb303_input_mapping_object[parameter]) {
+            tb303_input_mapping_object[parameter].value = scaledValue;
             return;
         }
 
         // Grandmother sliders
         if (parameter.startsWith('gm-')) {
-            const gmParam = parameter.replace('gm-', '');
+            const grandmother_parameter_name_string = parameter.replace('gm-', '');
             
             // Override modRate if BPM SYNC is enabled
-            if (gmParam === 'modRate' && gmModSyncCb && gmModSyncCb.checked) {
-                const index = Math.round(scaledValue * 9); // Map 0-1 to 0-9
-                if (gmSyncRateSlider) gmSyncRateSlider.value = index;
+            if (grandmother_parameter_name_string === 'modRate' && grandmother_mod_sync_checkbox_element && grandmother_mod_sync_checkbox_element.checked) {
+                const synchronized_index_integer = Math.round(scaledValue * 9); // Map 0-1 to 0-9
+                if (grandmother_sync_rate_slider_element) grandmother_sync_rate_slider_element.value = synchronized_index_integer;
                 window.updateGmSyncRate();
                 return;
             }
 
-            const ctrl = gmControls.find(c => c.param === gmParam);
-            if (ctrl) {
-                const input = document.getElementById(ctrl.id);
-                const valDisplay = document.getElementById(ctrl.valId);
-                if (input) input.value = scaledValue;
-                if (valDisplay) valDisplay.textContent = Math.round(scaledValue * 100) + '%';
+            const grandmother_control_object = grandmother_controls_array.find(grandmother_control_object => grandmother_control_object.param === grandmother_parameter_name_string);
+            if (grandmother_control_object) {
+                const hardware_input_element_node = document.getElementById(grandmother_control_object.id);
+                const value_display_element_node = document.getElementById(grandmother_control_object.valId);
+                if (hardware_input_element_node) hardware_input_element_node.value = scaledValue;
+                if (value_display_element_node) value_display_element_node.textContent = Math.round(scaledValue * 100) + '%';
             }
         }
     });
 
     // --- MIDI Transport ---
-    window.addEventListener('midiTransport', async (e) => {
-        const { action } = e.detail;
+    window.addEventListener('midiTransport', async (event_object) => {
+        const { action } = event_object.detail;
         if (action === 'play') {
             await Tone.start();
-            seq.start();
+            sequencer_engine_instance.start();
         } else if (action === 'stop') {
-            seq.stop();
+            sequencer_engine_instance.stop();
         }
     });
 
     // --- MIDI Pedal Toggle ---
-    window.addEventListener('midiToggle', (e) => {
-        const { parameter, state } = e.detail;
-        const pedalMap = {
-            'pedal-overdrive': { checkbox: pedalOverdrive, name: 'overdrive' },
-            'pedal-delay':     { checkbox: pedalDelay,     name: 'delay' },
-            'pedal-phaser':    { checkbox: pedalPhaser,    name: 'phaser' },
+    window.addEventListener('midiToggle', (event_object) => {
+        const { parameter, state } = event_object.detail;
+        const pedal_mapping_object = {
+            'pedal-overdrive': { checkbox: pedal_overdrive_element, name: 'overdrive' },
+            'pedal-delay':     { checkbox: pedal_delay_element,     name: 'delay' },
+            'pedal-phaser':    { checkbox: pedal_phaser_element,    name: 'phaser' },
         };
 
-        const pedal = pedalMap[parameter];
-        if (pedal) {
-            pedal.checkbox.checked = state;
-            audio.setPedal(pedal.name, state);
+        const current_pedal_object = pedal_mapping_object[parameter];
+        if (current_pedal_object) {
+            current_pedal_object.checkbox.checked = state;
+            audio_engine_instance.setPedal(current_pedal_object.name, state);
         }
     });
 
     // --- MIDI Program Change → Pattern Recall ---
-    window.addEventListener('midiProgramChange', (e) => {
-        const { program } = e.detail;
-        if (seq.recallPattern(program)) {
+    window.addEventListener('midiProgramChange', (event_object) => {
+        const { program } = event_object.detail;
+        if (sequencer_engine_instance.recallPattern(program)) {
             renderGrid();
         }
     });
