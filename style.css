@@ -667,9 +667,12 @@ button {
 
 .monotron-ribbon-container {
     padding: 0 1rem;
+    display: flex;
+    justify-content: center;
 }
 
 .monotron-ribbon {
+    width: 50%;
     height: 48px;
     background: linear-gradient(180deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);
     border-radius: 4px;

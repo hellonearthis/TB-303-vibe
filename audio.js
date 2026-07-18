@@ -19,9 +19,14 @@ class TB303AudioEngine {
         this.delay = new Tone.FeedbackDelay("8n.", 0.4);
         this.delay.wet.value = 0; // Off by default
 
-        this.volume = new Tone.Volume(-6); // Prevent clipping
+        this.dynamicsVolume = new Tone.Volume(-6); // Internal dynamics (accents/ghosts)
+        this.masterVolume = new Tone.Volume(-9); // Master volume for user control
 
-        this.synth.chain(this.distortion, this.phaser, this.delay, this.volume, Tone.Destination);
+        this.synth.chain(this.distortion, this.phaser, this.delay, this.dynamicsVolume, this.masterVolume, Tone.Destination);
+
+        // WHAT: Expose masterVolume as 'volume' so that aux routing (Grandmother/Monotron) still works.
+        // WHY: Other modules reference window.AudioEngine.volume to disconnect/reconnect the final output node.
+        this.volume = this.masterVolume;
 
         // Parameters
         this.params = {
@@ -30,7 +35,8 @@ class TB303AudioEngine {
             resonance: 0.5,
             envMod: 0.7,
             decay: 0.4,
-            accentAmount: 0.7
+            accentAmount: 0.7,
+            volume: 0.7
         };
 
         this.updateSynthParams();
@@ -76,6 +82,9 @@ class TB303AudioEngine {
         const decay_time_seconds = 0.1 + (this.params.decay * 1.5);
         this.synth.envelope.decay = decay_time_seconds;
         this.synth.filterEnvelope.decay = decay_time_seconds;
+
+        // Master Volume
+        this.masterVolume.volume.value = -30 + (this.params.volume * 30);
     }
 
     // WHAT: Triggers a specific musical step on the synthesizer, applying 303-specific logic like slides, accents, and ghosts.
@@ -94,7 +103,7 @@ class TB303AudioEngine {
         if (is_accent_enabled) {
             const accent_intensity_amount = this.params.accentAmount;
             // Accent pushes volume, filter cutoff, and changes decay based on slide
-            this.volume.volume.setValueAtTime(-8 + (6 * accent_intensity_amount), scheduled_time); // Boost vol
+            this.dynamicsVolume.volume.setValueAtTime(-8 + (6 * accent_intensity_amount), scheduled_time); // Boost vol
             this.synth.filterEnvelope.octaves = (this.params.envMod * 6) + (2.5 * accent_intensity_amount); // Boost env mod
             
             if (is_slide_enabled) {
@@ -108,12 +117,12 @@ class TB303AudioEngine {
             }
         } else if (is_ghost_enabled) {
             // Ghost does the reverse: lowers volume, reduces filter intensity
-            this.volume.volume.setValueAtTime(-14, scheduled_time); // Lower vol
+            this.dynamicsVolume.volume.setValueAtTime(-14, scheduled_time); // Lower vol
             this.synth.filterEnvelope.octaves = (this.params.envMod * 6) - 1.5; // Reduce env mod
             this.synth.envelope.decay = base_decay_time_seconds * 1.2; // Slightly longer/softer decay
             this.synth.filterEnvelope.decay = base_decay_time_seconds * 1.2;
         } else {
-            this.volume.volume.setValueAtTime(-8, scheduled_time);
+            this.dynamicsVolume.volume.setValueAtTime(-8, scheduled_time);
             this.synth.filterEnvelope.octaves = this.params.envMod * 6;
             this.synth.envelope.decay = base_decay_time_seconds;
             this.synth.filterEnvelope.decay = base_decay_time_seconds;
@@ -148,7 +157,7 @@ window.AudioEngine = new TB303AudioEngine();
 // WHY: We want external MIDI controllers to be able to turn the software knobs in real time without needing direct access to the AudioEngine instance.
 window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
     const { parameter, scaledValue } = midi_control_change_event_object.detail;
-    const tb303_valid_parameters_array = ['cutoff', 'resonance', 'envMod', 'decay', 'accentAmount'];
+    const tb303_valid_parameters_array = ['cutoff', 'resonance', 'envMod', 'decay', 'accentAmount', 'volume'];
     if (tb303_valid_parameters_array.includes(parameter)) {
         window.AudioEngine.setParam(parameter, scaledValue);
     }

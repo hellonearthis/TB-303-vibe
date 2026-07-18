@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const envelope_modulation_input_element = document.getElementById('env-mod');
     const decay_input_element = document.getElementById('decay');
     const accent_amount_input_element = document.getElementById('accent-amount');
+    const volume_input_element = document.getElementById('volume');
     
     // Pedals
     const pedal_overdrive_element = document.getElementById('pedal-overdrive');
@@ -139,13 +140,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Save pattern
                     sequencer_engine_instance.savePattern(key_integer_value);
                 } else {
-                    // Recall pattern
-                    if (sequencer_engine_instance.recallPattern(key_integer_value)) {
-                        renderGrid();
-                    }
+                    // Recall pattern (queued)
+                    sequencer_engine_instance.queuePattern(key_integer_value);
                 }
             }
         }
+    });
+
+    sequencer_engine_instance.setPatternChangeCallback(() => {
+        renderGrid();
     });
 
     // --- Sequencer UI Sync ---
@@ -207,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     envelope_modulation_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('envMod', parseFloat(event_object.target.value)));
     decay_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('decay', parseFloat(event_object.target.value)));
     accent_amount_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('accentAmount', parseFloat(event_object.target.value)));
+    volume_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('volume', parseFloat(event_object.target.value)));
 
     // Pedal listeners
     pedal_overdrive_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('overdrive', event_object.target.checked));
@@ -378,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { param: 'envMod',       inputId: 'env-mod',        element: envelope_modulation_input_element.closest('.knob-group') },
         { param: 'decay',        inputId: 'decay',          element: decay_input_element.closest('.knob-group') },
         { param: 'accentAmount', inputId: 'accent-amount',  element: accent_amount_input_element.closest('.knob-group') },
+        { param: 'volume',       inputId: 'volume',         element: volume_input_element.closest('.knob-group') },
     ];
 
     tb303_learnable_parameters_array.forEach(({ param, inputId, element }) => {
@@ -543,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'envMod':       envelope_modulation_input_element,
         'decay':        decay_input_element,
         'accentAmount': accent_amount_input_element,
+        'volume':       volume_input_element,
     };
 
     window.addEventListener('midiCCChange', (event_object) => {
@@ -606,9 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MIDI Program Change → Pattern Recall ---
     window.addEventListener('midiProgramChange', (event_object) => {
         const { program } = event_object.detail;
-        if (sequencer_engine_instance.recallPattern(program)) {
-            renderGrid();
-        }
+        sequencer_engine_instance.queuePattern(program);
     });
 
     // Initialize grid layout

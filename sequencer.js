@@ -105,6 +105,8 @@ class Sequencer {
         );
         
         this.uiCallback = null;
+        this.patternChangeCallback = null;
+        this.queuedPattern = null;
     }
 
     // WHAT: Registers a callback function that the sequencer will call every time it advances a step.
@@ -113,9 +115,25 @@ class Sequencer {
         this.uiCallback = user_interface_callback_function;
     }
 
+    // WHAT: Registers a callback for when a pattern actually changes (e.g. at the start of a new cycle).
+    // WHY: The UI needs to redraw the entire grid when a new pattern loads from memory.
+    setPatternChangeCallback(pattern_change_callback_function) {
+        this.patternChangeCallback = pattern_change_callback_function;
+    }
+
     // WHAT: The core tick function that gets called 16 times per measure by the Tone.Sequence.
     // WHY: This function looks at the current step's data (note, slide, accent), checks what happened on the previous step (to handle slides correctly), and tells the Audio Engine to play it.
     tick(scheduled_audio_time, current_step_index) {
+        if (current_step_index === 0 && this.queuedPattern !== null) {
+            this.recallPattern(this.queuedPattern);
+            this.queuedPattern = null;
+            if (this.patternChangeCallback) {
+                Tone.Draw.schedule(() => {
+                    this.patternChangeCallback();
+                }, scheduled_audio_time);
+            }
+        }
+        
         this.currentStep = current_step_index;
         
         const step_data_object = this.grid[current_step_index];
@@ -226,6 +244,23 @@ class Sequencer {
     recallPattern(memory_slot_index) {
         if (this.patterns[memory_slot_index]) {
             this.grid = JSON.parse(JSON.stringify(this.patterns[memory_slot_index]));
+            return true;
+        }
+        return false;
+    }
+
+    // WHAT: Queues a pattern to be loaded at the start of the next cycle, or loads immediately if stopped.
+    // WHY: Ensures pattern changes stay musically in time by waiting for the 16-step sequence to finish before swapping the active memory.
+    queuePattern(memory_slot_index) {
+        if (this.patterns[memory_slot_index]) {
+            if (this.isPlaying) {
+                this.queuedPattern = memory_slot_index;
+            } else {
+                this.recallPattern(memory_slot_index);
+                if (this.patternChangeCallback) {
+                    this.patternChangeCallback();
+                }
+            }
             return true;
         }
         return false;

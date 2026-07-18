@@ -167,8 +167,10 @@ class MoogGrandmotherEngine {
         }
     }
 
-    // WHAT: Starts the asynchronous loop that generates random voltages for the Sample & Hold circuit.
-    // WHY: We use a standard JavaScript interval instead of Tone.Loop so the randomizer runs continuously regardless of whether the main sequencer transport is playing.
+    // WHAT: Starts the audio-thread-locked loop that generates random voltages for the Sample & Hold circuit.
+    // WHY: We use Tone.Loop instead of setInterval so the randomizer runs on the same AudioContext clock as
+    //      every other synth engine. setInterval runs on the main thread and jitters under load or when the
+    //      browser tab is backgrounded, causing the S&H to stutter and lose its rhythmic character.
     _startSH() {
         // Stop any existing S&H loop
         this._stopSH();
@@ -176,24 +178,27 @@ class MoogGrandmotherEngine {
         // S&H rate: map 0-1 → interval 2s down to 0.05s
         const interval_duration_seconds = 2 - (this.params.shRate * 1.95);
 
-        this.shIntervalId = setInterval(() => {
+        this.shLoop = new Tone.Loop((scheduled_audio_time) => {
             // Generate random voltage: -1 to 1
             const random_voltage_value = (Math.random() * 2) - 1;
             // setTargetAtTime adds a tiny glide to prevent harsh clicks at high depths
-            this.shSignal.setTargetAtTime(random_voltage_value, Tone.now(), 0.01);
-        }, interval_duration_seconds * 1000);
-        
+            this.shSignal.setTargetAtTime(random_voltage_value, scheduled_audio_time, 0.01);
+        }, interval_duration_seconds);
+
+        this.shLoop.start(0);
+
         // Trigger first value immediately
         const initial_random_voltage_value = (Math.random() * 2) - 1;
         this.shSignal.setValueAtTime(initial_random_voltage_value, Tone.now());
     }
 
-    // WHAT: Stops the running Sample & Hold generator loop.
+    // WHAT: Stops the running Sample & Hold generator loop and releases the Tone.Loop resources.
     // WHY: Prevents memory leaks and unnecessary background processing when the drone synthesizer is powered off.
     _stopSH() {
-        if (this.shIntervalId) {
-            clearInterval(this.shIntervalId);
-            this.shIntervalId = null;
+        if (this.shLoop) {
+            this.shLoop.stop();
+            this.shLoop.dispose();
+            this.shLoop = null;
         }
     }
 
@@ -211,11 +216,20 @@ class MoogGrandmotherEngine {
 
     // WHAT: Powers on the drone synthesizer by starting the oscillators (if they aren't already running) and opening the amplifier envelope.
     // WHY: We leave the oscillators running continuously in the background to prevent audio clicks that happen when they are suddenly spun up. The envelope handles fading the sound in smoothly.
+    //      We also ensure Tone.Transport is running because the S&H Tone.Loop depends on it for scheduling.
     startDrone() {
         if (this.isPlaying) return;
         this.isPlaying = true;
 
         this._applyParams();
+
+        // WHAT: Ensures the global Tone.Transport is running before starting the S&H loop.
+        // WHY: Tone.Loop schedules events via the Transport. If the user activates the drone
+        //      before pressing Play on the 303 sequencer, the Transport won't be running yet
+        //      and the S&H would silently do nothing.
+        if (Tone.Transport.state !== 'started') {
+            Tone.Transport.start();
+        }
 
         if (!this.oscillatorsStarted) {
             this.osc1.start();
