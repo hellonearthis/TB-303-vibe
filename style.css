@@ -958,7 +958,7 @@ body.midi-learn-active .monotron-knob-group:hover {
    WHY:  Matches the sampler's existing dark LCD screen aesthetic so it feels
          like a native part of the KO-40 hardware panel. */
 .sampler-step-editor {
-    margin: 6px 0 4px;
+    margin: 2px 0;
     background: #1a1e19;
     border: 2px inset #85877e;
     padding: 4px 10px;
