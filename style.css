@@ -949,4 +949,132 @@ body.midi-learn-active .monotron-knob-group:hover {
 .gm-select{width:100%;min-width:88px;padding:.3rem .4rem;border:1px solid rgba(210,160,90,.25);border-radius:3px;background:#17120e;color:#f0dcc0;font:.68rem 'Share Tech Mono',monospace}.gm-timing-group{flex-basis:100%;border-color:rgba(147,187,253,.2)}.gm-timing-group h3{color:#93bbfd}.grandmother-section.clock-synced .gm-timing-group{border-color:rgba(147,187,253,.65);box-shadow:inset 0 0 18px rgba(60,110,190,.12)}.gm-check-group{min-width:150px;align-items:flex-start;justify-content:center}.gm-check-group label{cursor:pointer;white-space:nowrap}.gm-clock-status{margin-top:.7rem;padding:.35rem .5rem;border:1px solid rgba(147,187,253,.2);background:rgba(10,20,35,.65);color:#93bbfd;font:.68rem 'Share Tech Mono',monospace;letter-spacing:.06em}#gm-sh-rate:disabled{opacity:.35;cursor:not-allowed}
 
 .midi-target-control { display:flex; align-items:center; gap:.35rem; font-size:.68rem; font-weight:700; letter-spacing:.08em; }
+.midi-target-control { display:flex; align-items:center; gap:.35rem; font-size:.68rem; font-weight:700; letter-spacing:.08em; }
 .midi-target-control select { min-width:7rem; padding:.35rem .45rem; border:1px solid var(--border-color, #555); border-radius:3px; background:#222; color:#fff; }
+
+/* ─── Sampler Step Editor Panel ──────────────────────────────────────────── */
+
+/* WHAT: The step inspector panel that slides in below the 16-step grid.
+   WHY:  Matches the sampler's existing dark LCD screen aesthetic so it feels
+         like a native part of the KO-40 hardware panel. */
+.sampler-step-editor {
+    margin: 6px 0 4px;
+    background: #1a1e19;
+    border: 2px inset #85877e;
+    padding: 8px 10px;
+    color: #e9ff6a;
+    font-family: 'Share Tech Mono', monospace;
+    animation: stepEditorSlideIn 0.15s ease-out;
+}
+
+@keyframes stepEditorSlideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #363936;
+    color: #e9ff6a;
+}
+
+.step-editor-clear-btn {
+    border: 1px solid #555;
+    border-radius: 2px;
+    background: #2a2c28;
+    color: #aaa;
+    padding: 2px 7px;
+    font: 700 0.55rem 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.step-editor-clear-btn:hover { background: #3a1515; color: #ff7070; border-color: #ff7070; }
+
+.step-editor-body {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+/* WHAT: Each individual control in the step editor (pitch, velocity, FX).
+   WHY:  flex-column layout stacks the label, slider, and value display vertically. */
+.step-editor-control {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 85px;
+    cursor: default;
+}
+
+.step-ctrl-label {
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #aebf73;
+    text-transform: uppercase;
+}
+
+.step-ctrl-val {
+    font-size: 0.58rem;
+    color: #e9ff6a;
+    white-space: nowrap;
+}
+
+.step-editor-control input[type="range"] {
+    width: 100%;
+    accent-color: #e9ff6a;
+    margin-top: 1px;
+}
+
+.step-editor-control input[type="range"]:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.step-editor-control select {
+    width: 100%;
+    margin-top: 2px;
+    background: #0e1010;
+    color: #e9ff6a;
+    border: 1px solid #444;
+    font: 0.58rem 'Share Tech Mono', monospace;
+    padding: 3px 4px;
+}
+
+/* ─── Active Step Button — Two-Line Layout ───────────────────────────────── */
+
+/* WHAT: When a step has a sample, the button uses a two-line label (step# and slot+pitch).
+   WHY:  Lets the user see at a glance which slot and pitch are on each step. */
+.sampler-step .step-num {
+    display: block;
+    font-size: 0.48rem;
+    opacity: 0.65;
+    line-height: 1;
+}
+
+.sampler-step .step-slot {
+    display: block;
+    font-size: 0.5rem;
+    color: #e9ff6a;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* WHAT: Yellow outline on the step currently open in the inspector.
+   WHY:  Visually distinguishes "editing this step" from "this step has a sample". */
+.sampler-step.step-selected {
+    outline: 2px solid #e9ff6a !important;
+    outline-offset: -2px;
+    background: #2e3020 !important;
+}

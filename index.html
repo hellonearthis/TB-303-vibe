@@ -120,7 +120,37 @@
             <div class="sampler-toolbar"><button id="sampler-source" title="Click to cycle: microphone, 303, Moog, Monotron">SRC: MIC</button><button id="sampler-record" class="sampler-record-btn">● REC</button><button id="sampler-clear">CLEAR</button></div>
             <div class="sampler-section-label"><span>SAMPLE BANK</span><span>8 MELODIC · 8 DRUM</span></div><div id="sampler-slots" class="sampler-slots"></div><div id="sampler-keys" class="sampler-keys" aria-label="Chromatic sample keyboard"></div>
             <div class="sampler-controls-row"><label>FX<select id="sampler-fx"><option value="clean">01 CLEAN</option><option value="lowpass">02 LOW PASS</option><option value="highpass">03 HIGH PASS</option><option value="drive">04 DRIVE</option><option value="crusher">05 CRUSH</option><option value="delay">06 DELAY</option><option value="reverb">07 SPACE</option><option value="chorus">08 CHORUS</option><option value="phaser">09 PHASER</option><option value="tremolo">10 TREMOLO</option><option value="vibrato">11 VIBRATO</option><option value="pitchup">12 PITCH +7</option><option value="pitchdown">13 PITCH −7</option><option value="reverse">14 REVERSE</option><option value="filtermove">15 SWEEP</option><option value="stutter">16 STUTTER</option></select></label><label>PATTERN<select id="sampler-pattern"></select></label><label>LEVEL<input id="sampler-volume" type="range" min="0" max="1" step="0.01" value="0.8"></label></div>
-            <div class="sampler-section-label"><span>16 STEP SEQUENCER</span><span class="sampler-pattern-actions"><button id="sampler-pattern-play">PLAY</button><button id="sampler-pattern-stop">STOP</button><button id="sampler-pattern-clear">CLEAR</button></span></div><div id="sampler-steps" class="sampler-steps"></div><div class="sampler-help">Red steps are programmed - press PLAY to run the pattern - empty sample pads make no sound</div>
+            <div class="sampler-section-label"><span>16 STEP SEQUENCER</span><span class="sampler-pattern-actions"><button id="sampler-pattern-play">PLAY</button><button id="sampler-pattern-stop">STOP</button><button id="sampler-pattern-clear">CLEAR</button></span></div>
+            <div id="sampler-steps" class="sampler-steps"></div>
+            <div id="sampler-step-editor" class="sampler-step-editor" style="display:none">
+                <div class="step-editor-header">
+                    <span id="sampler-step-editor-label">STEP 1</span>
+                    <button id="sampler-step-clear-step" class="step-editor-clear-btn">✕ CLEAR STEP</button>
+                </div>
+                <div class="step-editor-body">
+                    <label class="step-editor-control">
+                        <span class="step-ctrl-label">PITCH</span>
+                        <input type="range" id="sampler-step-transpose" min="-24" max="24" step="1" value="0">
+                        <span id="sampler-step-transpose-val" class="step-ctrl-val">C (0)</span>
+                    </label>
+                    <label class="step-editor-control">
+                        <span class="step-ctrl-label">VELOCITY</span>
+                        <input type="range" id="sampler-step-velocity" min="0.01" max="1" step="0.01" value="1">
+                        <span id="sampler-step-velocity-val" class="step-ctrl-val">100%</span>
+                    </label>
+                    <label class="step-editor-control">
+                        <span class="step-ctrl-label">FX OVERRIDE</span>
+                        <select id="sampler-step-fx">
+                            <option value="">— GLOBAL FX —</option>
+                            <option value="reverse">REVERSE</option>
+                            <option value="pitchup">PITCH +7</option>
+                            <option value="pitchdown">PITCH −7</option>
+                            <option value="stutter">STUTTER</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+            <div class="sampler-help">Click steps to program · click active steps to edit pitch &amp; velocity · PLAY runs sampler independently</div>
         </aside>
         </div>
         <!-- Moog Grandmother Drone Synth -->
