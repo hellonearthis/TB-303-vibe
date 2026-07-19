@@ -961,7 +961,7 @@ body.midi-learn-active .monotron-knob-group:hover {
     margin: 6px 0 4px;
     background: #1a1e19;
     border: 2px inset #85877e;
-    padding: 8px 10px;
+    padding: 4px 10px;
     color: #e9ff6a;
     font-family: 'Share Tech Mono', monospace;
     animation: stepEditorSlideIn 0.15s ease-out;
@@ -979,8 +979,8 @@ body.midi-learn-active .monotron-knob-group:hover {
     font-size: 0.62rem;
     font-weight: 800;
     letter-spacing: 0.1em;
-    margin-bottom: 8px;
-    padding-bottom: 5px;
+    margin-bottom: 4px;
+    padding-bottom: 3px;
     border-bottom: 1px solid #363936;
     color: #e9ff6a;
 }
