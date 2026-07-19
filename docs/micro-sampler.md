@@ -83,10 +83,16 @@ Common uses:
 The sampler has **16 patterns**, each with **16 steps**.
 
 - Choose a pattern in `PATTERN`.
-- Click steps to toggle the selected slot on/off.
-- The sampler pattern runs in sync with the main clock (same `PLAY` / `STOP`).
-- The step playhead is highlighted while playing.
-- Use the sampler's local PLAY / STOP buttons or the main 303 transport; both control the same clock.
+- Click an empty step to program it with the selected slot.
+- **Step Editor**: Click an already programmed step to open the step editor panel.
+  - **PITCH**: Transpose the sample per-step (melodic slots only). Moving the slider previews the pitch live.
+  - **VELOCITY**: Adjust the volume per-step for accents and dynamics.
+  - **FX OVERRIDE**: Apply a specific effect to just this step, bypassing the global FX chain.
+- Click the same step again to close the step editor, or use `✕ CLEAR STEP` to remove it.
+- **Independent Playback**: The sampler has its own `PLAY` and `STOP` buttons. 
+  - Clicking the sampler's `PLAY` runs the pattern independently of the 303.
+  - Clicking the sampler's `STOP` halts the sampler without stopping the 303.
+  - The main 303 transport buttons will still start/stop the sampler alongside the 303.
 
 `CLEAR` in the sequencer section clears the current sampler pattern (not the samples).
 
@@ -96,7 +102,7 @@ The sampler has **16 patterns**, each with **16 steps**.
 
 ## Known behaviors and tips
 
-- The sampler starts/stops with the main transport buttons (`PLAY` / `STOP`).
+- While the sampler can be started/stopped independently using its own buttons, the main 303 transport buttons (`PLAY` / `STOP`) will also start and stop the sampler to keep everything in sync.
 - Instrument sources tap each panel's final output without muting its normal audio path.
 - If you hear clipping with heavy FX + loud samples, reduce `LEVEL` or re-record at a lower source volume.
 
