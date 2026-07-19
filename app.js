@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Synth Controls
     const wave_select_element = document.getElementById('wave-type');
+    const tuning_input_element = document.getElementById('tuning');
     const cutoff_input_element = document.getElementById('cutoff');
     const resonance_input_element = document.getElementById('resonance');
     const envelope_modulation_input_element = document.getElementById('env-mod');
@@ -61,6 +62,50 @@ document.addEventListener('DOMContentLoaded', () => {
             grid_container_element.appendChild(row_element_node);
         });
 
+        // Per-step octave switches mirror the original TB-303 octave up/down modifiers.
+        const appendOctaveRow = (label_text, octave_value, class_name) => {
+            const row_element = document.createElement('div');
+            row_element.className = 'grid-row';
+            const label_element = document.createElement('div');
+            label_element.className = 'grid-label';
+            label_element.textContent = label_text;
+            row_element.appendChild(label_element);
+
+            for (let step_index = 0; step_index < sequencer_engine_instance.steps; step_index++) {
+                const cell_element = document.createElement('div');
+                cell_element.className = `grid-cell octave-cell ${class_name}`;
+                if ((sequencer_engine_instance.grid[step_index].octave || 0) === octave_value) {
+                    cell_element.classList.add(octave_value > 0 ? 'active-octave-up' : 'active-octave-down');
+                }
+                cell_element.addEventListener('click', () => {
+                    sequencer_engine_instance.toggleOctave(step_index, octave_value);
+                    renderGrid();
+                });
+                row_element.appendChild(cell_element);
+            }
+            grid_container_element.appendChild(row_element);
+        };
+
+        appendOctaveRow('OCT +', 1, 'octave-up-cell');
+        appendOctaveRow('OCT -', -1, 'octave-down-cell');
+        // Timing tie: sustain the previous note without consuming a new attack.
+        const tie_row_element = document.createElement('div');
+        tie_row_element.className = 'grid-row';
+        const tie_label_element = document.createElement('div');
+        tie_label_element.className = 'grid-label';
+        tie_label_element.textContent = 'TIE';
+        tie_row_element.appendChild(tie_label_element);
+        for (let step_index = 0; step_index < sequencer_engine_instance.steps; step_index++) {
+            const cell_element = document.createElement('div');
+            cell_element.className = 'grid-cell tie-cell';
+            if (sequencer_engine_instance.grid[step_index].tie) cell_element.classList.add('active-tie');
+            cell_element.addEventListener('click', () => {
+                sequencer_engine_instance.toggleTie(step_index);
+                renderGrid();
+            });
+            tie_row_element.appendChild(cell_element);
+        }
+        grid_container_element.appendChild(tie_row_element);
         // Slide Row
         const slide_row_element = document.createElement('div');
         slide_row_element.className = 'grid-row';
@@ -167,6 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const note_cells_node_list = document.querySelectorAll(`.note-cell:nth-child(${current_step_index_number + 2})`);
             note_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
             
+            // Octave cells
+            document.querySelectorAll('.octave-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell => cell.classList.add('playhead'));
+
+            // Tie cell
+            document.querySelectorAll('.tie-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell => cell.classList.add('playhead'));
+
             // Slide cell
             const slide_cells_node_list = document.querySelectorAll(`.slide-cell:nth-child(${current_step_index_number + 2})`);
             slide_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
@@ -205,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // WHAT: Routes UI slider changes directly into the TB-303 audio engine.
     // WHY: Basic event binding to make the knobs actually change the sound.
     wave_select_element.addEventListener('change', (event_object) => audio_engine_instance.setParam('wave', event_object.target.value));
+    tuning_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('tuning', parseFloat(event_object.target.value)));
     cutoff_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('cutoff', parseFloat(event_object.target.value)));
     resonance_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('resonance', parseFloat(event_object.target.value)));
     envelope_modulation_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('envMod', parseFloat(event_object.target.value)));
@@ -231,6 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
     button_drone_toggle_element.addEventListener('click', async () => {
         await Tone.start();
         if (!grandmother_engine_instance.isPlaying) {
+            if (grandmother_engine_instance.timing.clockMode === '303' && !sequencer_engine_instance.isPlaying) {
+                sequencer_engine_instance.start();
+                window.SamplerEngine?.sequence.start(0);
+            }
             grandmother_engine_instance.startDrone();
             grandmother_section_element.classList.add('drone-active');
             drone_indicator_element.classList.add('active');
@@ -247,11 +303,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Grandmother knob controls — map element IDs to engine param keys
     const grandmother_controls_array = [
+        { id: 'gm-osc1-level', param: 'osc1Level', valId: 'gm-osc1-level-val' },
+        { id: 'gm-osc2-level', param: 'osc2Level', valId: 'gm-osc2-level-val' },
         { id: 'gm-detune',     param: 'detune',    valId: 'gm-detune-val' },
         { id: 'gm-noise',      param: 'noiseLevel', valId: 'gm-noise-val' },
         { id: 'gm-cutoff',     param: 'cutoff',    valId: 'gm-cutoff-val' },
         { id: 'gm-resonance',  param: 'resonance', valId: 'gm-resonance-val' },
         { id: 'gm-attack',     param: 'attack',    valId: 'gm-attack-val' },
+        { id: 'gm-decay',      param: 'decay',     valId: 'gm-decay-val' },
+        { id: 'gm-sustain',    param: 'sustain',   valId: 'gm-sustain-val' },
+        { id: 'gm-release',    param: 'release',   valId: 'gm-release-val' },
         { id: 'gm-mod-wheel',  param: 'modWheel',  valId: 'gm-mod-wheel-val' },
         { id: 'gm-mod-rate',   param: 'modRate',   valId: 'gm-mod-rate-val' },
         { id: 'gm-sh-rate',    param: 'shRate',    valId: 'gm-sh-rate-val' },
@@ -273,7 +334,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- LFO BPM Sync ---
+
+    const grandmother_select_parameters = [
+        { id: 'gm-osc1-wave', param: 'osc1Wave' },
+        { id: 'gm-osc2-wave', param: 'osc2Wave' },
+        { id: 'gm-mod-wave', param: 'modWave' },
+        { id: 'gm-mod-target', param: 'modTarget' }
+    ];
+    grandmother_select_parameters.forEach(({ id, param }) => {
+        const select_element = document.getElementById(id);
+        select_element?.addEventListener('change', event => grandmother_engine_instance.setParam(param, event.target.value));
+    });
+
+    const timing_control_map = {
+        'gm-clock-mode': 'clockMode',
+        'gm-start-mode': 'startMode',
+        'gm-cycle-bars': 'cycleBars',
+        'gm-envelope-mode': 'envelopeMode',
+        'gm-sh-division': 'shDivision'
+    };
+    const clock_mode_element = document.getElementById('gm-clock-mode');
+    const clock_status_element = document.getElementById('gm-clock-status');
+    const sh_rate_element = document.getElementById('gm-sh-rate');
+
+    function updateGrandmotherClockUI() {
+        const clocked = clock_mode_element.value === '303';
+        document.getElementById('grandmother-section').classList.toggle('clock-synced', clocked);
+        sh_rate_element.disabled = clocked;
+        if (clocked) {
+            const bars_label = document.getElementById('gm-cycle-bars').selectedOptions[0].text;
+            const division_label = document.getElementById('gm-sh-division').selectedOptions[0].text;
+            clock_status_element.textContent = `303 LOCK · ${bars_label.toUpperCase()} · S&H ${division_label.toUpperCase()}`;
+        } else {
+            clock_status_element.textContent = 'FREE CLOCK · S&H RUNS IN SECONDS';
+        }
+    }
+
+    Object.entries(timing_control_map).forEach(([element_id, timing_parameter]) => {
+        document.getElementById(element_id).addEventListener('change', event => {
+            grandmother_engine_instance.setTimingParam(timing_parameter, event.target.value);
+            if (timing_parameter === 'clockMode' && event.target.value === '303' && grandmother_engine_instance.isPlaying && !sequencer_engine_instance.isPlaying) {
+                sequencer_engine_instance.start();
+                window.SamplerEngine?.sequence.start(0);
+            }
+            if (timing_parameter === 'clockMode' && event.target.value === '303') {
+                const lfo_sync = document.getElementById('gm-mod-sync');
+                if (!lfo_sync.checked) {
+                    lfo_sync.checked = true;
+                    lfo_sync.dispatchEvent(new Event('change'));
+                }
+            }
+            updateGrandmotherClockUI();
+        });
+    });
+    document.getElementById('gm-follow-gate').addEventListener('change', event => grandmother_engine_instance.setTimingParam('followGate', event.target.checked));
+    document.getElementById('gm-stop-with-303').addEventListener('change', event => grandmother_engine_instance.setTimingParam('stopWith303', event.target.checked));
+
+    sequencer_engine_instance.addStepCallback((step_index, scheduled_time, step_data, step_duration, previous_step, next_step) => {
+        grandmother_engine_instance.handle303Step(step_index, scheduled_time, step_data, step_duration, previous_step, next_step);
+    });
+    updateGrandmotherClockUI();    // --- LFO BPM Sync ---
     const grandmother_mod_sync_checkbox_element = document.getElementById('gm-mod-sync');
     const grandmother_mod_rate_slider_element = document.getElementById('gm-mod-rate');
     const grandmother_sync_rate_slider_element = document.getElementById('gm-sync-rate');
@@ -306,6 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (grandmother_mod_sync_checkbox_element) {
         grandmother_mod_sync_checkbox_element.addEventListener('change', (event_object) => {
+            grandmother_engine_instance.setTimingParam('lfoSync', event_object.target.checked);
             if (event_object.target.checked) {
                 grandmother_mod_rate_slider_element.style.display = 'none';
                 grandmother_sync_rate_slider_element.style.display = 'block';
@@ -348,6 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const midi_status_label_element = document.getElementById('midi-label');
     const button_midi_learn_element = document.getElementById('btn-midi-learn');
     const button_midi_reset_element = document.getElementById('btn-midi-reset');
+    const midi_note_target_element = document.getElementById('midi-note-target');
+    const saved_midi_note_target = localStorage.getItem('tb303_midiNoteTarget');
+    if (saved_midi_note_target && midi_note_target_element?.querySelector(`option[value="${saved_midi_note_target}"]`)) midi_note_target_element.value = saved_midi_note_target;
+    midi_note_target_element?.addEventListener('change', event => localStorage.setItem('tb303_midiNoteTarget', event.target.value));
 
     // --- MIDI Status Indicator ---
     window.addEventListener('midiDeviceChange', (event_object) => {
@@ -377,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // TB-303 knobs
     const tb303_learnable_parameters_array = [
+        { param: 'tuning',       inputId: 'tuning',         element: tuning_input_element.closest('.knob-group') },
         { param: 'cutoff',       inputId: 'cutoff',         element: cutoff_input_element.closest('.knob-group') },
         { param: 'resonance',    inputId: 'resonance',      element: resonance_input_element.closest('.knob-group') },
         { param: 'envMod',       inputId: 'env-mod',        element: envelope_modulation_input_element.closest('.knob-group') },
@@ -543,6 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MIDI CC → UI Slider Sync ---
     // When a hardware control moves, update the on-screen slider position
     const tb303_input_mapping_object = {
+        'tuning':       tuning_input_element,
         'cutoff':       cutoff_input_element,
         'resonance':    resonance_input_element,
         'envMod':       envelope_modulation_input_element,

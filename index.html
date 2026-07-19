@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TB-303 Clone</title>
+    <title>TB-303 + KO-40 Sampler</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
+        <div class="workstation-layout">
+        <main class="tb303-module">
         <header>
             <h1>TB-303</h1>
             <div class="transport-controls">
@@ -20,6 +22,14 @@
                     <input type="number" id="tempo" value="120" min="60" max="200">
                 </div>
                 <div class="midi-controls">
+                    <label class="midi-target-control" for="midi-note-target">NOTES
+                        <select id="midi-note-target" title="Choose which instrument receives MIDI keyboard notes">
+                            <option value="303">303</option>
+                            <option value="grandmother">MOOG</option>
+                            <option value="monotron" selected>MONOTRON</option>
+                            <option value="sampler">SAMPLER</option>
+                        </select>
+                    </label>
                     <button id="btn-midi-learn" class="btn-midi-learn" title="Click, then click any knob, then move a MIDI control to map it">MIDI LEARN</button>
                     <button id="btn-midi-reset" class="btn-secondary btn-midi-reset" title="Reset all MIDI mappings to defaults">RESET</button>
                     <div class="midi-status" id="midi-status">
@@ -38,6 +48,7 @@
                     <option value="square">Square</option>
                 </select>
             </div>
+            <div class="knob-group"><label>Tune</label><input type="range" id="tuning" min="0" max="1" step="0.01" value="0.5"></div>
             <div class="knob-group">
                 <label>Cutoff</label>
                 <input type="range" id="cutoff" min="0" max="1" step="0.01" value="0.5">
@@ -102,6 +113,16 @@
             </div>
         </section>
 
+        </main>
+        <aside class="sampler-module" aria-label="KO-40 sampler and recorder">
+            <div class="sampler-topline"><div><span class="sampler-kicker">MICRO SAMPLER</span><h2>KO–40</h2></div><div class="sampler-memory"><span id="sampler-time">40.0s</span><small>FREE</small></div></div>
+            <div class="sampler-screen" aria-live="polite"><span id="sampler-display-main">SELECT A SLOT</span><span id="sampler-display-sub">MIC READY · PATTERN 01</span><div class="sampler-meter"><i id="sampler-meter-fill"></i></div></div>
+            <div class="sampler-toolbar"><button id="sampler-source" title="Click to cycle: microphone, 303, Moog, Monotron">SRC: MIC</button><button id="sampler-record" class="sampler-record-btn">● REC</button><button id="sampler-clear">CLEAR</button></div>
+            <div class="sampler-section-label"><span>SAMPLE BANK</span><span>8 MELODIC · 8 DRUM</span></div><div id="sampler-slots" class="sampler-slots"></div><div id="sampler-keys" class="sampler-keys" aria-label="Chromatic sample keyboard"></div>
+            <div class="sampler-controls-row"><label>FX<select id="sampler-fx"><option value="clean">01 CLEAN</option><option value="lowpass">02 LOW PASS</option><option value="highpass">03 HIGH PASS</option><option value="drive">04 DRIVE</option><option value="crusher">05 CRUSH</option><option value="delay">06 DELAY</option><option value="reverb">07 SPACE</option><option value="chorus">08 CHORUS</option><option value="phaser">09 PHASER</option><option value="tremolo">10 TREMOLO</option><option value="vibrato">11 VIBRATO</option><option value="pitchup">12 PITCH +7</option><option value="pitchdown">13 PITCH −7</option><option value="reverse">14 REVERSE</option><option value="filtermove">15 SWEEP</option><option value="stutter">16 STUTTER</option></select></label><label>PATTERN<select id="sampler-pattern"></select></label><label>LEVEL<input id="sampler-volume" type="range" min="0" max="1" step="0.01" value="0.8"></label></div>
+            <div class="sampler-section-label"><span>16 STEP SEQUENCER</span><span class="sampler-pattern-actions"><button id="sampler-pattern-play">PLAY</button><button id="sampler-pattern-stop">STOP</button><button id="sampler-pattern-clear">CLEAR</button></span></div><div id="sampler-steps" class="sampler-steps"></div><div class="sampler-help">Red steps are programmed - press PLAY to run the pattern - empty sample pads make no sound</div>
+        </aside>
+        </div>
         <!-- Moog Grandmother Drone Synth -->
         <section class="grandmother-section" id="grandmother-section">
             <div class="grandmother-header">
@@ -122,6 +143,10 @@
                 <div class="gm-group">
                     <h3>Oscillators / Mixer</h3>
                     <div class="gm-knobs">
+                        <div class="gm-knob-group"><label for="gm-osc1-wave">Osc 1 Wave</label><select id="gm-osc1-wave" class="gm-select"><option value="sawtooth">Saw</option><option value="square">Square</option><option value="triangle">Triangle</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-osc1-level">Osc 1 Level</label><input type="range" id="gm-osc1-level" min="0" max="1" step="0.01" value="0.8"><span class="gm-value" id="gm-osc1-level-val">80%</span></div>
+                        <div class="gm-knob-group"><label for="gm-osc2-wave">Osc 2 Wave</label><select id="gm-osc2-wave" class="gm-select"><option value="sawtooth">Saw</option><option value="square">Square</option><option value="triangle">Triangle</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-osc2-level">Osc 2 Level</label><input type="range" id="gm-osc2-level" min="0" max="1" step="0.01" value="0.8"><span class="gm-value" id="gm-osc2-level-val">80%</span></div>
                         <div class="gm-knob-group">
                             <label for="gm-detune">Detune</label>
                             <input type="range" id="gm-detune" min="0" max="1" step="0.01" value="0.15">
@@ -156,6 +181,9 @@
                 <div class="gm-group">
                     <h3>Envelope</h3>
                     <div class="gm-knobs">
+                        <div class="gm-knob-group"><label for="gm-decay">Decay</label><input type="range" id="gm-decay" min="0" max="1" step="0.01" value="0.25"><span class="gm-value" id="gm-decay-val">25%</span></div>
+                        <div class="gm-knob-group"><label for="gm-sustain">Sustain</label><input type="range" id="gm-sustain" min="0" max="1" step="0.01" value="1"><span class="gm-value" id="gm-sustain-val">100%</span></div>
+                        <div class="gm-knob-group"><label for="gm-release">Release</label><input type="range" id="gm-release" min="0" max="1" step="0.01" value="0.45"><span class="gm-value" id="gm-release-val">45%</span></div>
                         <div class="gm-knob-group">
                             <label for="gm-attack">Attack</label>
                             <input type="range" id="gm-attack" min="0" max="1" step="0.01" value="0.35">
@@ -168,6 +196,8 @@
                 <div class="gm-group">
                     <h3>Modulation</h3>
                     <div class="gm-knobs">
+                        <div class="gm-knob-group"><label for="gm-mod-wave">LFO Wave</label><select id="gm-mod-wave" class="gm-select"><option value="sine">Sine</option><option value="triangle">Triangle</option><option value="square">Square</option><option value="sawtooth">Saw</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-mod-target">LFO Target</label><select id="gm-mod-target" class="gm-select"><option value="both">Pitch + Filter</option><option value="pitch">Pitch</option><option value="filter">Filter</option></select></div>
                         <div class="gm-knob-group">
                             <label for="gm-mod-wheel">Mod Wheel</label>
                             <input type="range" id="gm-mod-wheel" min="0" max="1" step="0.01" value="0.25">
@@ -187,6 +217,18 @@
                     </div>
                 </div>
 
+                <div class="gm-group gm-timing-group">
+                    <h3>303 Clock / Cycle</h3>
+                    <div class="gm-knobs">
+                        <div class="gm-knob-group"><label for="gm-clock-mode">Clock</label><select id="gm-clock-mode" class="gm-select"><option value="free">Free</option><option value="303">303</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-start-mode">Start</label><select id="gm-start-mode" class="gm-select"><option value="immediate">Immediate</option><option value="step">Next Step</option><option value="bar" selected>Next Bar</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-cycle-bars">Cycle</label><select id="gm-cycle-bars" class="gm-select"><option value="0.25">1/4 Bar</option><option value="0.5">1/2 Bar</option><option value="1" selected>1 Bar</option><option value="2">2 Bars</option><option value="4">4 Bars</option><option value="8">8 Bars</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-envelope-mode">Envelope</label><select id="gm-envelope-mode" class="gm-select"><option value="hold">Hold</option><option value="retrigger">Retrigger Cycle</option></select></div>
+                        <div class="gm-knob-group"><label for="gm-sh-division">S&amp;H Step</label><select id="gm-sh-division" class="gm-select"><option value="1">Every Step</option><option value="2">2 Steps</option><option value="4" selected>4 Steps</option><option value="8">8 Steps</option><option value="16">16 Steps</option></select></div>
+                        <div class="gm-knob-group gm-check-group"><label><input type="checkbox" id="gm-follow-gate"> Follow 303 Gate</label><label><input type="checkbox" id="gm-stop-with-303" checked> Stop with 303</label></div>
+                    </div>
+                    <div class="gm-clock-status" id="gm-clock-status">FREE CLOCK · S&amp;H RUNS IN SECONDS</div>
+                </div>
                 <!-- Patch Bay: S&H → Osc2 FM -->
                 <div class="gm-group gm-patch-bay">
                     <h3>Patch Bay <span class="patch-label">S&H Out → Osc2 FM In</span></h3>
@@ -239,8 +281,8 @@
     <!-- Korg Monotron Synth -->
         <section class="monotron-section" id="monotron-section">
             <div class="monotron-header">
-                <h2>KORG MONOTRON</h2>
-                <div class="monotron-header-controls" style="display:flex; gap:1.5rem; align-items:center;">
+                <div><span class="monotron-eyebrow">ANALOGUE RIBBON SYNTHESIZER</span><h2>KORG <strong>monotron</strong></h2></div>
+                <div class="monotron-header-controls">
                     <div class="monotron-scale-selector">
                         <label>Model:</label>
                         <select id="monotron-model">
@@ -263,57 +305,20 @@
             
             <div class="monotron-panel">
                 <div class="monotron-knobs">
-                    <!-- Switch for Mod (Original) -->
-                    <div class="monotron-knob-group mod-group original-only" style="display:none;">
-                        <label>LFO Mod</label>
-                        <select id="monotron-mod-target" style="background:#1f2937; color:#a0aec0; border:none; padding:0.2rem; border-radius:4px; font-family:'Share Tech Mono', monospace; font-size: 0.75rem;">
-                            <option value="standby">Standby</option>
-                            <option value="pitch">Pitch</option>
-                            <option value="cutoff">Cutoff</option>
-                        </select>
-                    </div>
-
-                    <div class="monotron-knob-group osc-group duo-only">
-                        <label for="monotron-vco2-pitch">VCO2 Pitch</label>
-                        <input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5">
-                    </div>
-                    <div class="monotron-knob-group osc-group duo-only">
-                        <label for="monotron-xmod">X-MOD Int</label>
-                        <input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0.0">
-                    </div>
-
-                    <!-- Original LFO Knobs -->
-                    <div class="monotron-knob-group lfo-group original-only" style="display:none;">
-                        <label for="monotron-lfo-rate">LFO Rate</label>
-                        <input type="range" id="monotron-lfo-rate" min="0" max="1" step="0.01" value="0.5">
-                    </div>
-                    <div class="monotron-knob-group lfo-group original-only" style="display:none;">
-                        <label for="monotron-lfo-int">LFO Int</label>
-                        <input type="range" id="monotron-lfo-int" min="0" max="1" step="0.01" value="0.0">
-                    </div>
-
-                    <div class="monotron-knob-group vcf-group">
-                        <label for="monotron-cutoff">VCF Cutoff</label>
-                        <input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8">
-                    </div>
-                    <div class="monotron-knob-group vcf-group">
-                        <label for="monotron-peak">VCF Peak</label>
-                        <input type="range" id="monotron-peak" min="0" max="1" step="0.01" value="0.2">
-                    </div>
-                    <div class="monotron-knob-group vcf-group">
-                        <label for="monotron-volume">Volume</label>
-                        <input type="range" id="monotron-volume" min="0" max="1" step="0.01" value="0.7">
-                    </div>
-                    <div class="monotron-knob-group" style="justify-content: flex-end; padding-bottom: 5px;">
-                        <label for="monotron-aux" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-                            <input type="checkbox" id="monotron-aux" style="width: 16px; height: 16px; cursor:pointer;">
-                            Aux In (303)
-                        </label>
-                    </div>
-                    <div class="monotron-knob-group vcf-group">
-                        <label for="monotron-aux-vol">Aux Vol</label>
-                        <input type="range" id="monotron-aux-vol" min="0" max="1" step="0.01" value="0.5">
-                    </div>
+                    <div class="monotron-knob-group original-only duo-only osc-group"><label for="monotron-vco1-pitch">VCO<span class="duo-label">1</span> Pitch</label><input type="range" id="monotron-vco1-pitch" min="0" max="1" step="0.01" value="0.5"></div>
+                    <div class="monotron-knob-group mod-group original-only" style="display:none"><label for="monotron-mod-target">LFO Target</label><select id="monotron-mod-target"><option value="standby">Standby</option><option value="pitch">Pitch</option><option value="cutoff">Cutoff</option></select></div>
+                    <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-rate">LFO Rate</label><input type="range" id="monotron-lfo-rate" min="0" max="1" step="0.01" value="0.5"></div>
+                    <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-int">LFO Int</label><input type="range" id="monotron-lfo-int" min="0" max="1" step="0.01" value="0"></div>
+                    <div class="monotron-knob-group duo-only osc-group"><label for="monotron-vco2-pitch">VCO2 Pitch</label><input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5"></div>
+                    <div class="monotron-knob-group duo-only osc-group"><label for="monotron-xmod">X-MOD Int</label><input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0"></div>
+                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-wave">LFO Wave</label><select id="monotron-delay-lfo-wave"><option value="triangle">△ Triangle</option><option value="square">□ Square</option></select></div>
+                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-rate">LFO Rate</label><input type="range" id="monotron-delay-lfo-rate" min="0" max="1" step="0.01" value="0.35"></div>
+                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-int">LFO Int</label><input type="range" id="monotron-delay-lfo-int" min="0" max="1" step="0.01" value="0.2"></div>
+                    <div class="monotron-knob-group vcf-group"><label for="monotron-cutoff">VCF Cutoff</label><input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8"></div>
+                    <div class="monotron-knob-group vcf-group original-only duo-only"><label for="monotron-peak">VCF Peak</label><input type="range" id="monotron-peak" min="0" max="1" step="0.01" value="0.2"></div>
+                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-time">Delay Time</label><input type="range" id="monotron-delay-time" min="0" max="1" step="0.01" value="0.35"></div>
+                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-feedback">Feedback</label><input type="range" id="monotron-delay-feedback" min="0" max="0.92" step="0.01" value="0.45"></div>
+                    <div class="monotron-utility"><label for="monotron-volume">Output <input type="range" id="monotron-volume" min="0" max="1" step="0.01" value="0.7"></label><label for="monotron-aux"><input type="checkbox" id="monotron-aux"> 303 AUX</label><label for="monotron-aux-vol">Input <input type="range" id="monotron-aux-vol" min="0" max="1" step="0.01" value="0.5"></label></div>
                 </div>
                 
                 <div class="monotron-ribbon-container">
@@ -331,6 +336,7 @@
     <script src="monotron-audio.js"></script>
     <script src="midi.js"></script>
     <script src="sequencer.js"></script>
+    <script src="sampler.js"></script>
     <script src="app.js"></script>
     <script src="monotron-ui.js"></script>
 </body>

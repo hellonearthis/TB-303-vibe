@@ -8,6 +8,8 @@ class Sequencer {
         // Internal state of the grid
         this.grid = Array(this.steps).fill(null).map(() => ({
             note: null, // string e.g. 'C3', or null for rest
+            octave: 0, // original-style per-step octave down/normal/up
+            tie: false, // timing tie sustains the previous note without a retrigger
             slide: false,
             accent: false,
             ghost: false
@@ -104,11 +106,15 @@ class Sequencer {
             "16n"
         );
         
+        this.stepCallbacks = [];
         this.uiCallback = null;
         this.patternChangeCallback = null;
         this.queuedPattern = null;
     }
 
+    addStepCallback(step_callback_function) {
+        if (typeof step_callback_function === 'function') this.stepCallbacks.push(step_callback_function);
+    }
     // WHAT: Registers a callback function that the sequencer will call every time it advances a step.
     // WHY: We need to decouple the audio logic from the HTML UI. This allows the sequencer to tell the UI exactly when to highlight the current playing column.
     setUICallback(user_interface_callback_function) {
@@ -137,6 +143,7 @@ class Sequencer {
         this.currentStep = current_step_index;
         
         const step_data_object = this.grid[current_step_index];
+        const next_step_object = this.grid[(current_step_index + 1) % this.steps];
         
         const previous_step_index = current_step_index === 0 ? this.steps - 1 : current_step_index - 1;
         const previous_step_object = this.grid[previous_step_index];
@@ -145,17 +152,37 @@ class Sequencer {
         // Calculate 16th note duration for portamento/release timing
         const step_duration_in_seconds = Tone.Time("16n").toSeconds();
 
-        window.AudioEngine.playStep(
-            step_data_object.note, 
-            scheduled_audio_time, 
-            step_data_object.slide, 
-            step_data_object.accent, 
-            step_data_object.ghost,
-            step_duration_in_seconds,
-            is_previous_step_sliding
-        );
+        const octave_shift = step_data_object.octave || 0;
+        const playable_note = step_data_object.note
+            ? Tone.Frequency(step_data_object.note).transpose(octave_shift * 12).toNote()
+            : null;
 
-        // Trigger UI update using Tone.Draw to sync visually with audio time
+        if (step_data_object.tie) {
+            window.AudioEngine.playTie(scheduled_audio_time, step_duration_in_seconds, next_step_object.tie);
+        } else {
+            window.AudioEngine.playStep(
+                playable_note,
+                scheduled_audio_time,
+                step_data_object.slide,
+                step_data_object.accent,
+                step_data_object.ghost,
+                step_duration_in_seconds,
+                is_previous_step_sliding,
+                next_step_object.tie
+            );
+        }
+
+
+        this.stepCallbacks.forEach(step_callback => {
+            step_callback(
+                current_step_index,
+                scheduled_audio_time,
+                step_data_object,
+                step_duration_in_seconds,
+                previous_step_object,
+                next_step_object
+            );
+        });        // Trigger UI update using Tone.Draw to sync visually with audio time
         if (this.uiCallback) {
             Tone.Draw.schedule(() => {
                 this.uiCallback(current_step_index);
@@ -176,6 +203,8 @@ class Sequencer {
     stop() {
         Tone.Transport.stop();
         this.loop.stop();
+        window.AudioEngine.stopAll();
+        this.stepCallbacks.forEach(step_callback => step_callback(-1, Tone.now(), null, 0, null, null));
         this.isPlaying = false;
         this.currentStep = 0;
         if (this.uiCallback) this.uiCallback(-1); // Clear playhead
@@ -190,6 +219,7 @@ class Sequencer {
     // WHAT: Toggles a specific musical note on or off for a given step.
     // WHY: If the user clicks an empty cell, it adds the note. If they click an already active note, it removes it, acting like a toggle switch for programming.
     toggleNote(step_index_number, musical_note_string) {
+        this.grid[step_index_number].tie = false;
         if (this.grid[step_index_number].note === musical_note_string) {
             this.grid[step_index_number].note = null; // Remove note
         } else {
@@ -197,6 +227,20 @@ class Sequencer {
         }
     }
 
+    toggleOctave(step_index_number, octave_value) {
+        const current_octave = this.grid[step_index_number].octave || 0;
+        this.grid[step_index_number].octave = current_octave === octave_value ? 0 : octave_value;
+    }
+    toggleTie(step_index_number) {
+        const tie_enabled = !this.grid[step_index_number].tie;
+        this.grid[step_index_number].tie = tie_enabled;
+        if (tie_enabled) {
+            this.grid[step_index_number].note = null;
+            this.grid[step_index_number].slide = false;
+            this.grid[step_index_number].accent = false;
+            this.grid[step_index_number].ghost = false;
+        }
+    }
     // WHAT: Toggles the slide parameter for a given step.
     // WHY: Slide tells the audio engine not to retrigger the envelope on the next step, creating the classic 303 portamento glide.
     toggleSlide(step_index_number) {
@@ -226,6 +270,8 @@ class Sequencer {
     clearGrid() {
         this.grid.forEach(sequencer_step_object => {
             sequencer_step_object.note = null;
+            sequencer_step_object.octave = 0;
+            sequencer_step_object.tie = false;
             sequencer_step_object.slide = false;
             sequencer_step_object.accent = false;
             sequencer_step_object.ghost = false;
@@ -243,7 +289,7 @@ class Sequencer {
     // WHY: Allows the user to instantly switch between programmed sequences while playing live. It returns a boolean so the UI knows if it successfully loaded a valid pattern.
     recallPattern(memory_slot_index) {
         if (this.patterns[memory_slot_index]) {
-            this.grid = JSON.parse(JSON.stringify(this.patterns[memory_slot_index]));
+            this.grid = JSON.parse(JSON.stringify(this.patterns[memory_slot_index])).map(step => ({ octave: 0, tie: false, ...step }));
             return true;
         }
         return false;

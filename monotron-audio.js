@@ -57,9 +57,28 @@ class MonotronAudio {
         this.masterVolume.gain.value = 0.4; // lowered default volume to balance with 303
         
         // Routing (VCA is before VCF so Aux In bypasses the gate!)
+        this.vco2Level = this.ctx.createGain();
+        this.vco2Level.gain.value = 0.18;
+        this.vco2.connect(this.vco2Level);
+        this.vco2Level.connect(this.vca);
         this.vco1.connect(this.vca);
         this.vca.connect(this.vcf);
-        this.vcf.connect(this.masterVolume);
+        // Monotron Delay-style signal path: dry filter output plus a feedback echo.
+        this.dryGain = this.ctx.createGain();
+        this.delay = this.ctx.createDelay(1.5);
+        this.delayFeedback = this.ctx.createGain();
+        this.delayWet = this.ctx.createGain();
+        this.dryGain.gain.value = 1;
+        this.delayWet.gain.value = 0;
+        this.delay.delayTime.value = 0.25;
+        this.delayFeedback.gain.value = 0.45;
+        this.vcf.connect(this.dryGain);
+        this.dryGain.connect(this.masterVolume);
+        this.vcf.connect(this.delay);
+        this.delay.connect(this.delayWet);
+        this.delayWet.connect(this.masterVolume);
+        this.delay.connect(this.delayFeedback);
+        this.delayFeedback.connect(this.delay);
         Tone.connect(this.masterVolume, Tone.Destination);
         
         // Start oscillators immediately (VCA keeps them silent)
@@ -67,6 +86,8 @@ class MonotronAudio {
         this.vco2.start();
         
         this.baseFreq = 440;
+        this.pitchRatio = 1;
+        this.lastPeak = 0.2;
     }
     
     // WHAT: Sets the base frequency of the primary oscillator.
@@ -76,6 +97,28 @@ class MonotronAudio {
         this.vco1.frequency.setTargetAtTime(frequency_hertz, this.ctx.currentTime, 0.05);
     }
     
+    setVCO1Pitch(normalized_parameter_value) {
+        this.pitchRatio = Math.pow(2, (normalized_parameter_value - 0.5) * 2);
+        this.vco1.frequency.setTargetAtTime(this.baseFreq * this.pitchRatio, this.ctx.currentTime, 0.05);
+    }
+
+    setModel(model_name) {
+        const delay_enabled = model_name === 'delay';
+        this.delayWet.gain.setTargetAtTime(delay_enabled ? 0.65 : 0, this.ctx.currentTime, 0.03);
+        this.vco2Level.gain.setTargetAtTime(model_name === 'duo' ? 0.18 : 0, this.ctx.currentTime, 0.03);
+        this.vcf.Q.setTargetAtTime(delay_enabled ? 4 : 1 + this.lastPeak * 30, this.ctx.currentTime, 0.03);
+    }
+
+    setDelayTime(normalized_parameter_value) {
+        const seconds = 0.03 * Math.pow(25, normalized_parameter_value);
+        this.delay.delayTime.setTargetAtTime(seconds, this.ctx.currentTime, 0.025);
+    }
+
+    setDelayFeedback(normalized_parameter_value) {
+        this.delayFeedback.gain.setTargetAtTime(Math.min(0.92, normalized_parameter_value), this.ctx.currentTime, 0.03);
+    }
+
+    setLFOWave(waveform_name) { this.lfo.type = waveform_name === 'square' ? 'square' : 'triangle'; }
     // WHAT: Sets the pitch of the secondary oscillator (VCO2).
     // WHY: In the Duo model, VCO2 provides a constant frequency that can cross-modulate VCO1. We map a 0-1 knob value to an exponential frequency curve.
     setVCO2Pitch(normalized_parameter_value) {
@@ -99,6 +142,7 @@ class MonotronAudio {
     // WHAT: Sets the filter resonance (Peak).
     // WHY: Increases the Q-factor of the filter, creating a sharp resonant peak near the cutoff frequency that gives the Monotron its signature screech.
     setPeak(normalized_parameter_value) {
+        this.lastPeak = normalized_parameter_value;
         const q_factor = 0.1 + normalized_parameter_value * 30;
         this.vcf.Q.setTargetAtTime(q_factor, this.ctx.currentTime, 0.05);
     }
@@ -170,12 +214,20 @@ class MonotronAudio {
 }
 
 const monotronAudio = new MonotronAudio();
+window.MonotronAudio = monotronAudio;
 
 // WHAT: Listens for MIDI control change events and forwards them to the Monotron audio engine.
 // WHY: Allows external MIDI hardware to control the Monotron's knobs dynamically.
 window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
     const { parameter, scaledValue } = midi_control_change_event_object.detail;
     const monotron_parameter_routes_object = {
+        'monotron-vco1':      'setVCO1Pitch',
+        'monotron-lforate':   'setLFORate',
+        'monotron-lfoint':    'setLFOInt',
+        'monotron-dlforate':  'setLFORate',
+        'monotron-dlfoint':   'setLFOInt',
+        'monotron-delaytime': 'setDelayTime',
+        'monotron-feedback':  'setDelayFeedback',
         'monotron-cutoff':  'setCutoff',
         'monotron-peak':    'setPeak',
         'monotron-xmod':    'setXMod',
@@ -191,6 +243,7 @@ window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
 // WHAT: Listens for MIDI note on events to trigger the Monotron synthesizer.
 // WHY: Allows playing the Monotron ribbon synth using a standard external MIDI keyboard.
 window.addEventListener('midiNoteOn', async (midi_note_on_event_object) => {
+    if (document.getElementById('midi-note-target')?.value !== 'monotron') return;
     const { frequency } = midi_note_on_event_object.detail;
     if (Tone.context.state !== 'running') {
         await Tone.start();
@@ -201,5 +254,6 @@ window.addEventListener('midiNoteOn', async (midi_note_on_event_object) => {
 // WHAT: Listens for MIDI note off events to stop the Monotron synthesizer.
 // WHY: Tells the envelope to close when a key is released on an external MIDI keyboard.
 window.addEventListener('midiNoteOff', () => {
+    if (document.getElementById('midi-note-target')?.value !== 'monotron') return;
     monotronAudio.noteOff();
 });

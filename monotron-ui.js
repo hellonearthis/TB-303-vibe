@@ -14,6 +14,12 @@ function setupMonotronUI() {
     const scale_select_element = document.getElementById('monotron-scale');
     const model_select_element = document.getElementById('monotron-model');
     const scale_container_element = document.getElementById('monotron-scale-container');
+    const vco1_pitch_knob_element = document.getElementById('monotron-vco1-pitch');
+    const delay_lfo_wave_element = document.getElementById('monotron-delay-lfo-wave');
+    const delay_lfo_rate_element = document.getElementById('monotron-delay-lfo-rate');
+    const delay_lfo_int_element = document.getElementById('monotron-delay-lfo-int');
+    const delay_time_element = document.getElementById('monotron-delay-time');
+    const delay_feedback_element = document.getElementById('monotron-delay-feedback');
     const vco2_pitch_knob_element = document.getElementById('monotron-vco2-pitch');
     const xmod_knob_element = document.getElementById('monotron-xmod');
     const lfo_rate_knob_element = document.getElementById('monotron-lfo-rate');
@@ -120,21 +126,17 @@ function setupMonotronUI() {
         const selected_model_string = event_object.target.value;
         const original_knobs_node_list = document.querySelectorAll('.original-only');
         const duo_knobs_node_list = document.querySelectorAll('.duo-only');
-
-        if (selected_model_string === 'original') {
-            original_knobs_node_list.forEach(element_node => element_node.style.display = 'flex');
-            duo_knobs_node_list.forEach(element_node => element_node.style.display = 'none');
-            scale_container_element.style.display = 'none';
-        } else if (selected_model_string === 'duo') {
-            original_knobs_node_list.forEach(element_node => element_node.style.display = 'none');
-            duo_knobs_node_list.forEach(element_node => element_node.style.display = 'flex');
-            scale_container_element.style.display = 'block';
-            scale_select_element.disabled = false;
-        } else if (selected_model_string === 'delay') {
-            original_knobs_node_list.forEach(element_node => element_node.style.display = 'none');
-            duo_knobs_node_list.forEach(element_node => element_node.style.display = 'none');
-            scale_container_element.style.display = 'none';
-        }
+        const delay_knobs_node_list = document.querySelectorAll('.delay-only');
+        document.getElementById('monotron-section').dataset.model = selected_model_string;
+        monotronAudio.setModel(selected_model_string);
+        original_knobs_node_list.forEach(element_node => element_node.style.display = selected_model_string === 'original' ? 'flex' : 'none');
+        duo_knobs_node_list.forEach(element_node => element_node.style.display = selected_model_string === 'duo' ? 'flex' : 'none');
+        delay_knobs_node_list.forEach(element_node => element_node.style.display = selected_model_string === 'delay' ? 'flex' : 'none');
+        scale_container_element.style.display = selected_model_string === 'duo' ? 'flex' : 'none';
+        document.querySelector('.duo-label').style.display = selected_model_string === 'duo' ? 'inline' : 'none';
+        monotronAudio.setModTarget(selected_model_string === 'delay' ? 'pitch' : selected_model_string === 'original' ? mod_target_select_element.value : 'standby');
+        if (selected_model_string === 'delay') { monotronAudio.setLFORate(parseFloat(delay_lfo_rate_element.value)); monotronAudio.setLFOInt(parseFloat(delay_lfo_int_element.value)); }
+        if (selected_model_string === 'original') { monotronAudio.setLFORate(parseFloat(lfo_rate_knob_element.value)); monotronAudio.setLFOInt(parseFloat(lfo_int_knob_element.value)); }
     });
     // Trigger initial state
     model_select_element.dispatchEvent(new Event('change'));
@@ -202,6 +204,12 @@ function setupMonotronUI() {
     ribbon_container_element.addEventListener('pointercancel', stopTouch);
 
     // 6. Knob Events
+    vco1_pitch_knob_element.addEventListener('input', event_object => monotronAudio.setVCO1Pitch(parseFloat(event_object.target.value)));
+    delay_lfo_wave_element.addEventListener('change', event_object => monotronAudio.setLFOWave(event_object.target.value));
+    delay_lfo_rate_element.addEventListener('input', event_object => monotronAudio.setLFORate(parseFloat(event_object.target.value)));
+    delay_lfo_int_element.addEventListener('input', event_object => monotronAudio.setLFOInt(parseFloat(event_object.target.value)));
+    delay_time_element.addEventListener('input', event_object => monotronAudio.setDelayTime(parseFloat(event_object.target.value)));
+    delay_feedback_element.addEventListener('input', event_object => monotronAudio.setDelayFeedback(parseFloat(event_object.target.value)));
     vco2_pitch_knob_element.addEventListener('input', (event_object) => {
         monotronAudio.setVCO2Pitch(parseFloat(event_object.target.value));
     });
@@ -260,6 +268,10 @@ function setupMonotronUI() {
     aux_switch_element.dispatchEvent(new Event('change'));
 
     // Initialize values
+    monotronAudio.setVCO1Pitch(parseFloat(vco1_pitch_knob_element.value));
+    monotronAudio.setDelayTime(parseFloat(delay_time_element.value));
+    monotronAudio.setDelayFeedback(parseFloat(delay_feedback_element.value));
+    monotronAudio.setLFOWave(delay_lfo_wave_element.value);
     monotronAudio.setVCO2Pitch(parseFloat(vco2_pitch_knob_element.value));
     monotronAudio.setXMod(parseFloat(xmod_knob_element.value));
     if (lfo_rate_knob_element) {
@@ -274,6 +286,13 @@ function setupMonotronUI() {
 
     // --- MIDI CC → Monotron Slider Sync ---
     const monotron_input_mapping_object = {
+        'monotron-vco1':      vco1_pitch_knob_element,
+        'monotron-lforate':   lfo_rate_knob_element,
+        'monotron-lfoint':    lfo_int_knob_element,
+        'monotron-dlforate':  delay_lfo_rate_element,
+        'monotron-dlfoint':   delay_lfo_int_element,
+        'monotron-delaytime': delay_time_element,
+        'monotron-feedback':  delay_feedback_element,
         'monotron-cutoff':  cutoff_knob_element,
         'monotron-peak':    peak_knob_element,
         'monotron-xmod':    xmod_knob_element,
@@ -297,6 +316,13 @@ function setupMonotronUI() {
     const midi_controller_instance = window.MIDIController;
     if (midi_controller_instance) {
         const monotron_learnable_parameters_array = [
+            { param: 'monotron-vco1',      element: vco1_pitch_knob_element.closest('.monotron-knob-group') },
+            { param: 'monotron-lforate',   element: lfo_rate_knob_element.closest('.monotron-knob-group') },
+            { param: 'monotron-lfoint',    element: lfo_int_knob_element.closest('.monotron-knob-group') },
+            { param: 'monotron-dlforate',  element: delay_lfo_rate_element.closest('.monotron-knob-group') },
+            { param: 'monotron-dlfoint',   element: delay_lfo_int_element.closest('.monotron-knob-group') },
+            { param: 'monotron-delaytime', element: delay_time_element.closest('.monotron-knob-group') },
+            { param: 'monotron-feedback',  element: delay_feedback_element.closest('.monotron-knob-group') },
             { param: 'monotron-cutoff',  element: cutoff_knob_element.closest('.monotron-knob-group') },
             { param: 'monotron-peak',    element: peak_knob_element.closest('.monotron-knob-group') },
             { param: 'monotron-xmod',    element: xmod_knob_element.closest('.monotron-knob-group') },
