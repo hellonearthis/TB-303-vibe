@@ -8,6 +8,10 @@ This project also includes a small rack of extra panels that integrate with the 
 - KORG monotron (Original / Duo / Delay models, plus optional 303 external input routing)
 - Moog Grandmother drone synth (plus optional 303 input routing)
 
+## AI Collaboration & GPT-5.6
+
+This project was built with the assistance of advanced AI pair programming. Utilizing **GPT-5.6** made it incredibly easy to rapidly prototype and add new features to the virtual rack. Furthermore, GPT-5.6 significantly improved the underlying DSP and Vanilla JS code, refining the complex analog filter models and envelope interactions to make the instruments sound far more authentic and true to the quirky original hardware.
+
 ## Features
 
 - **Authentic Signal Flow**: Sawtooth/Square oscillator running through a heavily resonant lowpass filter with custom envelope modulation and decay controls.
