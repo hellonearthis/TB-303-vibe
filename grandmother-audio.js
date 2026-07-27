@@ -90,6 +90,13 @@ class MoogGrandmotherEngine {
         this.shSignal.connect(this.shGain);
         this.shGain.connect(this.osc2.frequency);
 
+        // WHAT: Registers the Grandmother's external input with the global AudioBus.
+        // WHY:  Allows UI code (or other instruments) to route signals here by name
+        //       without needing direct access to this engine instance.
+        if (window.Bus) {
+            window.Bus.registerDestination('grandmother_ext_in', this.extInput);
+        }
+
         this._applyParams();
     }
 
@@ -254,7 +261,10 @@ class MoogGrandmotherEngine {
         this.isPlaying = true;
         this._applyParams();
 
-        if (Tone.Transport.state !== 'started') Tone.Transport.start();
+        // WHAT: Register the Grandmother as an active Clock client.
+        // WHY: The shared Clock keeps the transport alive as long as any instrument needs it,
+        //      preventing stop-stealing between instruments.
+        window.Clock.start('grandmother');
         if (!this.oscillatorsStarted) {
             this.osc1.start();
             this.osc2.start();
@@ -279,6 +289,9 @@ class MoogGrandmotherEngine {
         if (!this.isPlaying) return;
         this.isPlaying = false;
         this.pendingClockStart = false;
+        // WHAT: Unregister the Grandmother from the Clock.
+        // WHY: Allows the transport to stop if no other instruments need it.
+        window.Clock.stop('grandmother');
         this._closeEnvelope(Tone.now());
         this._stopSH();
     }

@@ -5,8 +5,8 @@ class Sequencer {
         this.steps = 16;
         this.scale = ['C4', 'B3', 'A#3', 'A3', 'G#3', 'G3', 'F#3', 'F3', 'E3', 'D#3', 'D3', 'C#3', 'C3'];
         
-        // Internal state of the grid
-        this.grid = Array(this.steps).fill(null).map(() => ({
+        // Internal state of the grid (preallocate 64 steps to avoid bounds issues in DnB mode)
+        this.grid = Array(64).fill(null).map(() => ({
             note: null, // string e.g. 'C3', or null for rest
             octave: 0, // original-style per-step octave down/normal/up
             tie: false, // timing tie sustains the previous note without a retrigger
@@ -100,11 +100,15 @@ class Sequencer {
         this.isPlaying = false;
         this.currentStep = 0;
         
-        this.loop = new Tone.Sequence(
-            (scheduled_audio_time, current_step_index) => this.tick(scheduled_audio_time, current_step_index),
-            Array.from({ length: this.steps }, (_, loop_index) => loop_index),
-            "16n"
-        );
+        // WHAT: Creates a shared StepSequencer that wraps Tone.Sequence + Clock registration.
+        // WHY:  Replaces hand-rolled Tone.Sequence boilerplate with the shared pattern engine,
+        //       making step-count a parameter instead of hardcoded logic.
+        this.stepSequencer = new StepSequencer({
+            clientId: 'tb303',
+            stepCount: this.steps,
+            subdivision: '16n',
+            tickCallback: (scheduled_audio_time, current_step_index) => this.tick(scheduled_audio_time, current_step_index)
+        });
         
         this.stepCallbacks = [];
         this.uiCallback = null;
@@ -112,6 +116,8 @@ class Sequencer {
         this.queuedPattern = null;
     }
 
+    // WHAT: Registers a callback function to be executed on every sequencer tick.
+    // WHY: Other instruments (like the Grandmother drone) need to hook into the 303's master clock to synchronize their own behavior (e.g. sample and hold).
     addStepCallback(step_callback_function) {
         if (typeof step_callback_function === 'function') this.stepCallbacks.push(step_callback_function);
     }
@@ -190,19 +196,20 @@ class Sequencer {
         }
     }
 
-    // WHAT: Starts the global Tone.js transport and the local sequence loop.
-    // WHY: Tone.js requires the master transport to be running before any sequences will actually emit ticks.
+    // WHAT: Starts the 303 sequencer via the shared StepSequencer.
+    // WHY: StepSequencer.start() handles both Clock registration and Tone.Sequence start
+    //      in a single call, eliminating the manual two-step boilerplate.
     start() {
-        Tone.Transport.start();
-        this.loop.start(0);
+        this.stepSequencer.start();
         this.isPlaying = true;
     }
 
-    // WHAT: Stops the global transport, resets the step counter, and clears the UI playhead.
-    // WHY: When the user presses stop, the music should halt immediately, and the visual indicator should be removed so it doesn't confusingly stay highlighted.
+    // WHAT: Stops the 303 sequencer, cleans up audio state, and clears the UI playhead.
+    // WHY: StepSequencer.stop() handles Clock unregistration and Tone.Sequence stop.
+    //      The remaining lines handle 303-specific cleanup (releasing held notes, notifying
+    //      step callbacks, resetting the current step counter).
     stop() {
-        Tone.Transport.stop();
-        this.loop.stop();
+        this.stepSequencer.stop();
         window.AudioEngine.stopAll();
         this.stepCallbacks.forEach(step_callback => step_callback(-1, Tone.now(), null, 0, null, null));
         this.isPlaying = false;
@@ -210,10 +217,11 @@ class Sequencer {
         if (this.uiCallback) this.uiCallback(-1); // Clear playhead
     }
 
-    // WHAT: Sets the master tempo for the Tone.js transport.
-    // WHY: Changing the BPM scales all timing universally, speeding up or slowing down the sequencer playback perfectly in sync.
+    // WHAT: Sets the master tempo via the shared Clock.
+    // WHY: Routing BPM changes through the Clock centralizes transport configuration
+    //      and ensures every instrument sharing the transport hears the same tempo.
     setBpm(beats_per_minute) {
-        Tone.Transport.bpm.value = beats_per_minute;
+        window.Clock.setBpm(beats_per_minute);
     }
 
     // WHAT: Toggles a specific musical note on or off for a given step.
@@ -227,10 +235,15 @@ class Sequencer {
         }
     }
 
+    // WHAT: Adjusts the octave modifier (-1, 0, or +1) for a specific step.
+    // WHY: The original 303 relies heavily on rapid octave jumps to create its signature bouncy, rubbery sequences. Toggling the same octave again resets it to 0.
     toggleOctave(step_index_number, octave_value) {
         const current_octave = this.grid[step_index_number].octave || 0;
         this.grid[step_index_number].octave = current_octave === octave_value ? 0 : octave_value;
     }
+
+    // WHAT: Toggles the tie parameter, sustaining the previous note into the current step.
+    // WHY: Ties are crucial for creating long, continuous acid lines. If a tie is enabled, it inherently overrides any new note, slide, or accent on this step, so we clear them to prevent logical conflicts.
     toggleTie(step_index_number) {
         const tie_enabled = !this.grid[step_index_number].tie;
         this.grid[step_index_number].tie = tie_enabled;

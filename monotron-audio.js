@@ -88,6 +88,13 @@ class MonotronAudio {
         this.baseFreq = 440;
         this.pitchRatio = 1;
         this.lastPeak = 0.2;
+
+        // WHAT: Registers the Monotron's external input with the global AudioBus.
+        // WHY:  Allows UI code (or other instruments) to route signals here by name
+        //       without needing direct access to this engine instance.
+        if (window.Bus) {
+            window.Bus.registerDestination('monotron_ext_in', this.extInput);
+        }
     }
     
     // WHAT: Sets the base frequency of the primary oscillator.

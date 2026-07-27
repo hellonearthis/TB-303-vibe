@@ -12,6 +12,12 @@ This project also includes a small rack of extra panels that integrate with the 
 
 This project was built with the assistance of advanced AI pair programming. Utilizing **GPT-5.6** made it incredibly easy to rapidly prototype and add new features to the virtual rack. Furthermore, GPT-5.6 significantly improved the underlying DSP and Vanilla JS code, refining the complex analog filter models and envelope interactions to make the instruments sound far more authentic and true to the quirky original hardware.
 
+## Codebase Guidelines (Agent Rules)
+
+This project enforces strict coding rules for all contributors, especially AI assistants:
+1. **The "can_be_long" Protocol:** Variables must use highly descriptive, unabbreviated names (e.g., no `i` or `tmp`), often including their structural type (e.g., `event_object`, `element_node`).
+2. **The Tutorial Protocol:** Every function and logic branch must have a `// WHAT:` and `// WHY:` comment written in a friendly, instructional tone.
+
 ## Features
 
 - **Authentic Signal Flow**: Sawtooth/Square oscillator running through a heavily resonant lowpass filter with custom envelope modulation and decay controls.
@@ -114,7 +120,7 @@ An accurate emulation of the Korg Monotron series. Unlike traditional keyboards,
 
 ### KO–40 Micro Sampler (Recording System)
 A pocket-style sampler that sits to the right of the 303.
-- **40 seconds total sample time** shared across 16 slots.
+- **Unlimited sample time** (limited only by computer RAM) across 16 slots.
 - **Slots**: 8 melodic + 8 drum.
 - **Recording**: microphone input or direct resampling from the 303, Moog, or Monotron outputs.
 - **Sequencing**: 16-step sequencer with 16 patterns, synced to the main transport.

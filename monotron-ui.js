@@ -1,14 +1,17 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // WHAT: Delays the initialization of the Monotron UI by a small margin.
-    // WHY: We need to ensure that audio.js and the monotronAudio backend are completely initialized and attached to the window object before we try binding UI events to them.
-    setTimeout(() => {
-        setupMonotronUI();
-    }, 100);
-});
-
 // WHAT: Binds HTML DOM elements to the Monotron audio engine and handles the continuous ribbon logic.
 // WHY: This completely separates the visual interaction (clicks, drags, CSS updates) from the raw Web Audio API math handled in monotron-audio.js.
-function setupMonotronUI() {
+class MonotronInstrument extends window.Instrument {
+    constructor() {
+        super('monotron', document.getElementById('monotron-section'));
+    }
+
+    mount() {
+        super.mount();
+        this.setupUI();
+    }
+
+    setupUI() {
+        const monotronAudio = window.MonotronAudio;
     // 1. UI Elements
     const ribbon_container_element = document.getElementById('monotron-ribbon');
     const scale_select_element = document.getElementById('monotron-scale');
@@ -253,13 +256,11 @@ function setupMonotronUI() {
         if (window.AudioEngine) {
             if (event_object.target.checked) {
                 // Route 303 to Monotron VCF
-                window.AudioEngine.volume.disconnect(Tone.Destination);
-                Tone.connect(window.AudioEngine.volume, monotronAudio.extInput);
+                window.Bus.routeAudio(window.AudioEngine.volume, 'monotron_ext_in', true);
                 monotron_section_element.classList.add('aux-routed');
             } else {
                 // Route 303 back to Destination
-                window.AudioEngine.volume.disconnect(monotronAudio.extInput);
-                window.AudioEngine.volume.connect(Tone.Destination);
+                window.Bus.routeAudio(window.AudioEngine.volume, 'monotron_ext_in', false);
                 monotron_section_element.classList.remove('aux-routed');
             }
         }
@@ -311,63 +312,34 @@ function setupMonotronUI() {
     });
 
     // --- MIDI Learn: Register Monotron parameters ---
-    // (The MIDI Learn click handlers in app.js cover TB-303 + Grandmother.
-    //  Monotron knobs need their own registration here since they're set up in a separate module.)
-    const midi_controller_instance = window.MIDIController;
-    if (midi_controller_instance) {
+    if (window.MIDIRegistry) {
         const monotron_learnable_parameters_array = [
-            { param: 'monotron-vco1',      element: vco1_pitch_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-lforate',   element: lfo_rate_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-lfoint',    element: lfo_int_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-dlforate',  element: delay_lfo_rate_element.closest('.monotron-knob-group') },
-            { param: 'monotron-dlfoint',   element: delay_lfo_int_element.closest('.monotron-knob-group') },
-            { param: 'monotron-delaytime', element: delay_time_element.closest('.monotron-knob-group') },
-            { param: 'monotron-feedback',  element: delay_feedback_element.closest('.monotron-knob-group') },
-            { param: 'monotron-cutoff',  element: cutoff_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-peak',    element: peak_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-xmod',    element: xmod_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-volume',  element: volume_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-vco2',    element: vco2_pitch_knob_element.closest('.monotron-knob-group') },
-            { param: 'monotron-auxvol',  element: aux_vol_knob_element.closest('.monotron-knob-group') },
+            { param: 'monotron-vco1',      element: vco1_pitch_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-lforate',   element: lfo_rate_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-lfoint',    element: lfo_int_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-dlforate',  element: delay_lfo_rate_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-dlfoint',   element: delay_lfo_int_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-delaytime', element: delay_time_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-feedback',  element: delay_feedback_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-cutoff',  element: cutoff_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-peak',    element: peak_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-xmod',    element: xmod_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-volume',  element: volume_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-vco2',    element: vco2_pitch_knob_element?.closest('.monotron-knob-group') },
+            { param: 'monotron-auxvol',  element: aux_vol_knob_element?.closest('.monotron-knob-group') },
         ];
 
         monotron_learnable_parameters_array.forEach(({ param, element }) => {
-            if (!element) return;
-
-            // Show mapped indicator
-            const mapped_source_id_string = midi_controller_instance.getSourceForParameter(param);
-            element.classList.toggle('midi-mapped', !!mapped_source_id_string);
-            if (mapped_source_id_string) element.style.position = 'relative';
-
-            // Learn-mode click handler
-            element.addEventListener('click', (event_object) => {
-                if (document.body.classList.contains('midi-learn-active')) {
-                    event_object.preventDefault();
-                    event_object.stopPropagation();
-
-                    // Clear previous listening
-                    document.querySelectorAll('.midi-listening').forEach(element_node => element_node.classList.remove('midi-listening'));
-                    element.classList.add('midi-listening');
-
-                    midi_controller_instance.enterLearnMode(param);
-
-                    // Update tooltip
-                    const existing_tooltip_element = document.querySelector('.midi-learn-tooltip');
-                    if (existing_tooltip_element) {
-                        existing_tooltip_element.textContent = `Move a MIDI control for: ${param.toUpperCase()}`;
-                    }
-                }
-            }, true);
-        });
-
-        // Update indicators when learn completes
-        window.addEventListener('midiLearnComplete', (event_object) => {
-            monotron_learnable_parameters_array.forEach(({ param, element }) => {
-                if (!element) return;
-                const updated_source_id_string = midi_controller_instance.getSourceForParameter(param);
-                element.classList.toggle('midi-mapped', !!updated_source_id_string);
-                if (updated_source_id_string) element.style.position = 'relative';
-            });
+            if (element) {
+                window.MIDIRegistry.register(param, element);
+            }
         });
     }
+    }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        window.Rack.register(new MonotronInstrument());
+    }, 100);
+});

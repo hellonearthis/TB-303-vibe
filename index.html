@@ -10,7 +10,14 @@
 </head>
 <body>
     <div class="app-container">
-        <div class="workstation-layout">
+        <div style="text-align: center; margin-bottom: 1rem; color: var(--text-color);">
+            <label for="mode-selector" style="font-weight: 800;">MODE: </label>
+            <select id="mode-selector" style="background: var(--bg-surface); color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'Share Tech Mono', monospace;">
+                <option value="acid">ACID</option>
+                <option value="dnb">DRUM & BASS</option>
+            </select>
+        </div>
+
         <main class="tb303-module">
         <header>
             <h1>TB-303</h1>
@@ -152,7 +159,7 @@
             </div>
             <div class="sampler-help">Click steps to program · click active steps to edit pitch &amp; velocity · PLAY runs sampler independently</div>
         </aside>
-        </div>
+
         <!-- Moog Grandmother Drone Synth -->
         <section class="grandmother-section" id="grandmother-section">
             <div class="grandmother-header">
@@ -361,13 +368,22 @@
 
     </div>
 
+    <script src="core/clock.js"></script>
+    <script src="core/pattern.js"></script>
+    <script src="core/rack.js"></script>
+    <script src="core/mode.js"></script>
+    <script src="core/bus.js"></script>
+    <script src="core/midi-registry.js"></script>
     <script src="audio.js"></script>
     <script src="grandmother-audio.js"></script>
     <script src="monotron-audio.js"></script>
     <script src="midi.js"></script>
     <script src="sequencer.js"></script>
     <script src="sampler.js"></script>
+    <script src="sampler-ui.js"></script>
     <script src="app.js"></script>
+    <script src="tb303-ui.js"></script>
+    <script src="grandmother-ui.js"></script>
     <script src="monotron-ui.js"></script>
 </body>
 </html>

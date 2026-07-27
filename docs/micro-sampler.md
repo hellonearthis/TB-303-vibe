@@ -10,13 +10,11 @@ The KO–40 is a pocket‑style sampler panel that sits to the right of the TB�
 4. Click `● REC` to record, click again to stop.
 5. Click step buttons to place the selected slot into the 16‑step pattern.
 
-## Sample memory (40 seconds)
+## Sample memory
 
-The sampler has a shared **40.0 seconds** of total sample time across all 16 slots.
+The sampler tracks the total recorded sample time across all 16 slots as a visual reference. There is no artificial memory limit—you are constrained only by your computer's RAM.
 
-- The `FREE` display shows remaining time.
-- Recording automatically stops if you reach the remaining time.
-- Clearing a slot returns its time back to `FREE`.
+- The display shows the total amount of recording time used.
 
 Tip: If you want to re-record a slot, select it and record again — the old audio is replaced.
 
