@@ -1,12 +1,18 @@
+// WHAT: UI controller class for the KO-40 Micro Sampler instrument.
+// WHY: Manages sample bank DOM rendering, step sequencer button clicks, pitch editing modal state, and MIDI controller bindings.
 class SamplerInstrument extends window.Instrument {
+    // WHAT: Initializes the sampler UI with references to the audio engine and registers callback handlers.
+    // WHY: Connects engine state changes to visual UI re-renders and status message banners.
     constructor() {
         super('sampler', document.getElementById('sampler-section'));
         this.engine = window.SamplerEngine;
         this.engine.onRender = () => this.render();
-        this.engine.onMessage = (p, s) => this.message(p, s);
-        this.engine.onUpdateActiveSteps = (s) => this.updateActiveSteps(s);
+        this.engine.onMessage = (primary_message_string, secondary_message_string) => this.message(primary_message_string, secondary_message_string);
+        this.engine.onUpdateActiveSteps = (active_step_index_number) => this.updateActiveSteps(active_step_index_number);
     }
 
+    // WHAT: Mounts the sampler into the active synth rack.
+    // WHY: Builds DOM elements, binds click and input events, and triggers initial UI rendering.
     mount() {
         super.mount();
         this.build();
@@ -56,6 +62,7 @@ class SamplerInstrument extends window.Instrument {
             }
         }
 
+    // WHAT: Attaches user interaction event listeners to sampler UI buttons, knobs, and inputs.
     // WHY: Separated from build() so each concern is easy to find and edit independently.
         bind() {
             // --- Sample Bank Pad Clicks ---
@@ -108,30 +115,30 @@ class SamplerInstrument extends window.Instrument {
                 this.render();
             };
 
-            document.getElementById('sampler-step-transpose').oninput = (e) => {
+            document.getElementById('sampler-step-transpose').oninput = (input_event_object) => {
                 if (this.engine.selectedStep === null) return;
                 const step = this.engine.patterns[this.engine.patternIndex][this.engine.selectedStep];
                 if (!step) return;
-                step.transposeSemitones = parseInt(e.target.value);
+                step.transposeSemitones = parseInt(input_event_object.target.value);
                 document.getElementById('sampler-step-transpose-val').textContent = this.semitoneLabel(step.transposeSemitones);
                 this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
                 this.render();
             };
 
-            document.getElementById('sampler-step-velocity').oninput = (e) => {
+            document.getElementById('sampler-step-velocity').oninput = (input_event_object) => {
                 if (this.engine.selectedStep === null) return;
                 const step = this.engine.patterns[this.engine.patternIndex][this.engine.selectedStep];
                 if (!step) return;
-                step.velocityFloat = parseFloat(e.target.value);
+                step.velocityFloat = parseFloat(input_event_object.target.value);
                 document.getElementById('sampler-step-velocity-val').textContent = Math.round(step.velocityFloat * 100) + '%';
                 this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
             };
 
-            document.getElementById('sampler-step-fx').onchange = (e) => {
+            document.getElementById('sampler-step-fx').onchange = (change_event_object) => {
                 if (this.engine.selectedStep === null) return;
                 const step = this.engine.patterns[this.engine.patternIndex][this.engine.selectedStep];
                 if (!step) return;
-                step.fxOverrideString = e.target.value;
+                step.fxOverrideString = change_event_object.target.value;
                 this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
             };
 
@@ -142,10 +149,10 @@ class SamplerInstrument extends window.Instrument {
                 this.render();
             };
 
-            document.getElementById('sampler-source').onclick = (e) => {
-                const idx = this.engine.sourceOrder.indexOf(this.engine.source);
-                this.engine.source = this.engine.sourceOrder[(idx + 1) % this.engine.sourceOrder.length];
-                e.target.textContent = `SRC: ${this.engine.source.toUpperCase()}`;
+            document.getElementById('sampler-source').onclick = (click_event_object) => {
+                const source_index_number = this.engine.sourceOrder.indexOf(this.engine.source);
+                this.engine.source = this.engine.sourceOrder[(source_index_number + 1) % this.engine.sourceOrder.length];
+                click_event_object.target.textContent = `SRC: ${this.engine.source.toUpperCase()}`;
                 this.message(`${this.engine.source.toUpperCase()} INPUT`, 'SELECT SLOT + RECORD');
             };
 
@@ -180,25 +187,25 @@ class SamplerInstrument extends window.Instrument {
                 this.render();
             };
 
-            document.getElementById('sampler-pattern').onchange = (e) => {
-                this.engine.patternIndex = +e.target.value;
+            document.getElementById('sampler-pattern').onchange = (change_event_object) => {
+                this.engine.patternIndex = +change_event_object.target.value;
                 this.engine.selectedStep = null;
                 this.render();
             };
 
-            document.getElementById('sampler-pad-volume').oninput = (e) => {
+            document.getElementById('sampler-pad-volume').oninput = (input_event_object) => {
                 const slot = this.engine.slots[this.engine.selectedSlot];
                 if (slot) {
-                    slot.volume = parseFloat(e.target.value);
+                    slot.volume = parseFloat(input_event_object.target.value);
                 }
             };
 
-            document.getElementById('sampler-volume').oninput = (e) => {
-                this.engine.output.volume.value = -36 + (+e.target.value * 36);
+            document.getElementById('sampler-volume').oninput = (input_event_object) => {
+                this.engine.output.volume.value = -36 + (+input_event_object.target.value * 36);
             };
 
-            document.getElementById('sampler-fx').onchange = (e) => {
-                this.engine.setEffect(e.target.value);
+            document.getElementById('sampler-fx').onchange = (change_event_object) => {
+                this.engine.setEffect(change_event_object.target.value);
             };
         }
 

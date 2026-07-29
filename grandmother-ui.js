@@ -224,7 +224,7 @@ class GrandmotherInstrument extends window.Instrument {
                     return;
                 }
 
-                const grandmother_control_object = grandmother_controls_array.find(obj => obj.param === grandmother_parameter_name_string);
+                const grandmother_control_object = grandmother_controls_array.find(grandmother_control_item => grandmother_control_item.param === grandmother_parameter_name_string);
                 if (grandmother_control_object) {
                     const hardware_input_element_node = document.getElementById(grandmother_control_object.id);
                     if (hardware_input_element_node) {

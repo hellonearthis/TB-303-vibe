@@ -1,15 +1,23 @@
+// WHAT: Modern UI wrapper for the Roland TB-303 instrument panel.
+// WHY: Encapsulates all DOM bindings, grid building logic, pedal listeners, and MIDI integration for the 303 bass synth.
 class TB303Instrument extends window.Instrument {
+    // WHAT: Initializes the TB-303 instrument instance with audio and sequencer engine references.
+    // WHY: Provides quick reference handles to global audio synthesis and step-sequencing engines.
     constructor() {
         super('tb303', document.getElementById('tb303-section'));
         this.audioEngine = window.AudioEngine;
         this.sequencerEngine = window.SequencerEngine;
     }
 
+    // WHAT: Mounts the TB-303 instrument into the active synth rack.
+    // WHY: Extends the base Instrument mount sequence to bind all DOM controls and event listeners.
     mount() {
         super.mount();
         this.setupUI();
     }
 
+    // WHAT: Configures all DOM element event listeners, builds the piano-roll grid, and attaches MIDI handlers.
+    // WHY: Connects user visual interactions directly to DSP parameter updates and step sequencer memory.
     setupUI() {
         const sequencer_engine_instance = this.sequencerEngine;
         const audio_engine_instance = this.audioEngine;
@@ -37,6 +45,8 @@ class TB303Instrument extends window.Instrument {
         const pedal_phaser_element = document.getElementById('pedal-phaser');
 
         // --- Build Grid UI ---
+        // WHAT: Renders the 16-step monophonic note grid along with per-step octave, tie, slide, accent, and ghost modifier rows.
+        // WHY: Re-creates the visual state of the grid dynamically whenever steps or pattern memory changes.
         const renderGrid = () => {
             grid_container_element.innerHTML = '';
             
@@ -71,6 +81,8 @@ class TB303Instrument extends window.Instrument {
             });
 
             // Per-step octave switches mirror the original TB-303 octave up/down modifiers.
+            // WHAT: Appends a dedicated octave modification row (OCT + or OCT -) to the grid UI.
+            // WHY: Allows shifting individual notes up or down by 1 octave without changing base scale pitch.
             const appendOctaveRow = (label_text, octave_value, class_name) => {
                 const row_element = document.createElement('div');
                 row_element.className = 'grid-row';
@@ -79,14 +91,14 @@ class TB303Instrument extends window.Instrument {
                 label_element.textContent = label_text;
                 row_element.appendChild(label_element);
 
-                for (let step_index = 0; step_index < sequencer_engine_instance.steps; step_index++) {
+                for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
                     const cell_element = document.createElement('div');
                     cell_element.className = `grid-cell octave-cell ${class_name}`;
-                    if ((sequencer_engine_instance.grid[step_index].octave || 0) === octave_value) {
+                    if ((sequencer_engine_instance.grid[step_index_number].octave || 0) === octave_value) {
                         cell_element.classList.add(octave_value > 0 ? 'active-octave-up' : 'active-octave-down');
                     }
                     cell_element.addEventListener('click', () => {
-                        sequencer_engine_instance.toggleOctave(step_index, octave_value);
+                        sequencer_engine_instance.toggleOctave(step_index_number, octave_value);
                         renderGrid();
                     });
                     row_element.appendChild(cell_element);
@@ -103,12 +115,12 @@ class TB303Instrument extends window.Instrument {
             tie_label_element.className = 'grid-label';
             tie_label_element.textContent = 'TIE';
             tie_row_element.appendChild(tie_label_element);
-            for (let step_index = 0; step_index < sequencer_engine_instance.steps; step_index++) {
+            for (let step_index_number = 0; step_index_number < sequencer_engine_instance.steps; step_index_number++) {
                 const cell_element = document.createElement('div');
                 cell_element.className = 'grid-cell tie-cell';
-                if (sequencer_engine_instance.grid[step_index].tie) cell_element.classList.add('active-tie');
+                if (sequencer_engine_instance.grid[step_index_number].tie) cell_element.classList.add('active-tie');
                 cell_element.addEventListener('click', () => {
-                    sequencer_engine_instance.toggleTie(step_index);
+                    sequencer_engine_instance.toggleTie(step_index_number);
                     renderGrid();
                 });
                 tie_row_element.appendChild(cell_element);
@@ -179,6 +191,8 @@ class TB303Instrument extends window.Instrument {
         };
 
         // --- Keyboard Shortcuts (1-9) ---
+        // WHAT: Listens for number keys 1-9 to save or recall pattern memory slots.
+        // WHY: Provides instant hardware-style pattern switching during playback.
         window.addEventListener('keydown', (event_object) => {
             if (event_object.target.tagName === 'INPUT' && (event_object.target.type === 'text' || event_object.target.type === 'number')) return;
 
@@ -199,6 +213,8 @@ class TB303Instrument extends window.Instrument {
         });
 
         // --- Sequencer UI Sync ---
+        // WHAT: Highlights the current step column with a visual playhead indicator during audio playback.
+        // WHY: Gives clear visual feedback on current sequencer playback position across all grid rows.
         sequencer_engine_instance.setUICallback((current_step_index_number) => {
             document.querySelectorAll('.grid-cell').forEach(cell_element_node => cell_element_node.classList.remove('playhead'));
             
@@ -206,8 +222,8 @@ class TB303Instrument extends window.Instrument {
                 const note_cells_node_list = document.querySelectorAll(`.note-cell:nth-child(${current_step_index_number + 2})`);
                 note_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));
                 
-                document.querySelectorAll('.octave-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell => cell.classList.add('playhead'));
-                document.querySelectorAll('.tie-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell => cell.classList.add('playhead'));
+                document.querySelectorAll('.octave-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell_element_node => cell_element_node.classList.add('playhead'));
+                document.querySelectorAll('.tie-cell:nth-child(' + (current_step_index_number + 2) + ')').forEach(cell_element_node => cell_element_node.classList.add('playhead'));
                 
                 const slide_cells_node_list = document.querySelectorAll(`.slide-cell:nth-child(${current_step_index_number + 2})`);
                 slide_cells_node_list.forEach(cell_element_node => cell_element_node.classList.add('playhead'));

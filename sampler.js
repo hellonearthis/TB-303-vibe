@@ -148,8 +148,10 @@ class KO40SamplerEngine {
         this.cleanup();
     }
 
-    message(p, s) {
-        if (this.onMessage) this.onMessage(p, s);
+    // WHAT: Emits a status message to registered UI display callbacks.
+    // WHY: Provides real-time status updates (e.g. recording state, slot saved, errors) to the sampler screen.
+    message(primary_text_string, secondary_text_string) {
+        if (this.onMessage) this.onMessage(primary_text_string, secondary_text_string);
     }
 
     // WHAT: Disposes recording nodes and resets the recording UI state.
