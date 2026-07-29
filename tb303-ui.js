@@ -223,7 +223,11 @@ class TB303Instrument extends window.Instrument {
         // --- Event Listeners ---
         play_button_element.addEventListener('click', async () => {
             await Tone.start();
-            sequencer_engine_instance.start();
+            if (sequencer_engine_instance.isPlaying) {
+                sequencer_engine_instance.stop();
+            } else {
+                sequencer_engine_instance.start();
+            }
         });
 
         stop_button_element.addEventListener('click', () => {

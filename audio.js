@@ -154,8 +154,10 @@ class TB303AudioEngine {
         }
     }
     stopAll() {
-        this.synth.triggerRelease(Tone.now());
-        this.synth.portamento = 0;
+        if (this.synth) {
+            this.synth.triggerRelease(Tone.now());
+            this.synth.portamento = 0;
+        }
     }
 }
 

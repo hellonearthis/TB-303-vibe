@@ -8,6 +8,7 @@ class KO40SamplerEngine {
         this.slots = Array.from({ length: 16 }, (_, slot_index) => ({
             buffer: null,
             duration: 0,
+            volume: 1.0,
             type: slot_index < 8 ? 'melodic' : 'drum'
         }));
 
@@ -181,10 +182,10 @@ class KO40SamplerEngine {
 
         const player_node = new Tone.Player(slot_object.buffer);
 
-        // WHAT: Apply velocity by adjusting the player's own volume parameter in decibels.
-        // WHY: Player.volume is built-in and avoids inserting an extra Gain node in the audio graph.
-        const clamped_velocity_float = Math.max(0.01, velocity_float);
-        player_node.volume.value = Tone.gainToDb(clamped_velocity_float);
+        // WHAT: Apply velocity and per-pad slot volume by adjusting the player's own volume parameter in decibels.
+        // WHY: Combining per-step velocity and per-pad slot volume allows individual sample balance.
+        const effective_gain_float = Math.max(0.01, velocity_float * (slot_object.volume ?? 1.0));
+        player_node.volume.value = Tone.gainToDb(effective_gain_float);
 
         // WHAT: Conditionally insert a PitchShift node between the player and fxInput.
         // WHY: PitchShift is CPU-intensive. Skipping it when transposition is zero saves processing

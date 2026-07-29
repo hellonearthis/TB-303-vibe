@@ -93,7 +93,7 @@ class SamplerInstrument extends window.Instrument {
                         this.engine.selectedStep = null;
                     } else {
                         this.engine.selectedStep = step_index;
-                        this.engine.play(current_step_data.slotIndex, Tone.now(), current_step_data.transposeSemitones, current_step_data.velocityFloat);
+                        this.engine.play(current_step_data.slotIndex, Tone.now(), current_step_data.transposeSemitones, current_step_data.velocityFloat, current_step_data.fxOverrideString);
                     }
                 } else {
                     this.engine.patterns[this.engine.patternIndex][step_index] = {
@@ -114,7 +114,7 @@ class SamplerInstrument extends window.Instrument {
                 if (!step) return;
                 step.transposeSemitones = parseInt(e.target.value);
                 document.getElementById('sampler-step-transpose-val').textContent = this.semitoneLabel(step.transposeSemitones);
-                this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat);
+                this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
                 this.render();
             };
 
@@ -124,6 +124,7 @@ class SamplerInstrument extends window.Instrument {
                 if (!step) return;
                 step.velocityFloat = parseFloat(e.target.value);
                 document.getElementById('sampler-step-velocity-val').textContent = Math.round(step.velocityFloat * 100) + '%';
+                this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
             };
 
             document.getElementById('sampler-step-fx').onchange = (e) => {
@@ -131,6 +132,7 @@ class SamplerInstrument extends window.Instrument {
                 const step = this.engine.patterns[this.engine.patternIndex][this.engine.selectedStep];
                 if (!step) return;
                 step.fxOverrideString = e.target.value;
+                this.engine.play(step.slotIndex, Tone.now(), step.transposeSemitones, step.velocityFloat, step.fxOverrideString);
             };
 
             document.getElementById('sampler-step-clear-step').onclick = () => {
@@ -184,6 +186,13 @@ class SamplerInstrument extends window.Instrument {
                 this.render();
             };
 
+            document.getElementById('sampler-pad-volume').oninput = (e) => {
+                const slot = this.engine.slots[this.engine.selectedSlot];
+                if (slot) {
+                    slot.volume = parseFloat(e.target.value);
+                }
+            };
+
             document.getElementById('sampler-volume').oninput = (e) => {
                 this.engine.output.volume.value = -36 + (+e.target.value * 36);
             };
@@ -191,13 +200,6 @@ class SamplerInstrument extends window.Instrument {
             document.getElementById('sampler-fx').onchange = (e) => {
                 this.engine.setEffect(e.target.value);
             };
-
-            document.getElementById('btn-play').addEventListener('click', () => {
-                this.engine.startSequence();
-            });
-            document.getElementById('btn-stop').addEventListener('click', () => {
-                this.engine.stopSequence();
-            });
         }
 
         bindMidi() {
@@ -297,6 +299,12 @@ class SamplerInstrument extends window.Instrument {
                     slot_object.buffer ? `${slot_object.duration.toFixed(1)} SEC` : 'EMPTY';
             });
     
+            // Sync selected pad volume slider
+            const pad_vol_element = document.getElementById('sampler-pad-volume');
+            if (pad_vol_element && this.engine.slots[this.engine.selectedSlot]) {
+                pad_vol_element.value = this.engine.slots[this.engine.selectedSlot].volume;
+            }
+
             // Update step button states and labels
             document.querySelectorAll('.sampler-step').forEach((step_element, step_index) => {
                 const step_data_object = this.engine.patterns[this.engine.patternIndex][step_index];
@@ -331,9 +339,12 @@ class SamplerInstrument extends window.Instrument {
             // Disable pitch keyboard for drum slots
             document.getElementById('sampler-keys').classList.toggle('disabled', this.engine.selectedSlot >= 8);
     
-            // Update remaining memory display
-            document.getElementById('sampler-time').textContent =
-                `${Math.max(0, this.engine.maxSeconds - this.engine.used()).toFixed(1)}s`;
+            // Update remaining memory display (if element exists)
+            const sampler_time_element = document.getElementById('sampler-time');
+            if (sampler_time_element) {
+                sampler_time_element.textContent =
+                    `${Math.max(0, this.engine.maxSeconds - this.engine.used()).toFixed(1)}s`;
+            }
     
             // Sync the step editor panel to the selected step
             this.syncStepEditor();

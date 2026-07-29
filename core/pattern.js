@@ -66,19 +66,60 @@ class StepSequencer {
         );
     }
 
-    // WHAT: Registers with the Clock and starts the Tone.Sequence.
-    // WHY:  Instruments call this instead of manually doing Clock.start + sequence.start,
-    //       collapsing two operations into one and eliminating the chance of forgetting one.
+    // WHAT: Disposes the old Tone.Sequence, builds a fresh one, registers
+    //       with the Clock, and starts playback.
+    // WHY:  Tone.Sequence carries internal timeline anchors (start/stop
+    //       offsets) that become stale after a transport stop-and-reset.
+    //       Rebuilding the sequence on every play guarantees a pristine
+    //       state — no "zombie schedule" that refuses to fire because its
+    //       anchored start time is in the past.
     start() {
+        // WHAT: Check whether the global transport is already ticking.
+        // WHY:  If another instrument is playing, we must quantize-launch
+        //       this sequence to the next 16th-note boundary so both stay
+        //       rhythmically locked.  If the transport is idle, we start at 0.
+        const transport_was_already_running_boolean = window.Clock.isRunning;
+
+        // WHAT: Dispose the previous Tone.Sequence and build a brand-new one.
+        // WHY:  A stopped Tone.Sequence accumulates stale internal state
+        //       (start offsets, progress counters).  Rebuilding is cheap and
+        //       guarantees the sequence always fires from step 0.
+        this._build_sequence();
+
+        // WHAT: Tell the Clock this client needs the transport alive.
+        // WHY:  Clock.start() is idempotent — if the transport is already
+        //       running it simply adds the client to the active set.
         window.Clock.start(this.client_id_string);
-        this._sequence_instance.start(0);
+
+        if (transport_was_already_running_boolean) {
+            // WHAT: Quantize the sequence start to the next 16th-note grid line.
+            // WHY:  Starting mid-beat would cause a rhythmic hiccup.  "@16n"
+            //       tells Tone.js to wait until the next subdivision boundary.
+            this._sequence_instance.start("@16n");
+        } else {
+            // WHAT: Cold start — begin at transport position 0.
+            // WHY:  No other instrument is running, so we own the timeline
+            //       and can start cleanly from the very first beat.
+            this._sequence_instance.start(0);
+        }
+
         this.is_running_boolean = true;
     }
 
-    // WHAT: Stops the Tone.Sequence and unregisters from the Clock.
-    // WHY:  The Clock only halts the global transport when the last client unregisters,
-    //       so stopping one instrument never kills another.
+    // WHAT: Stops the Tone.Sequence, unregisters from the Clock, and — if
+    //       this was the last active client — resets the transport position.
+    // WHY:  Resetting the transport to position 0 when nobody needs it
+    //       ensures that the next instrument to call start() doesn't try
+    //       to schedule at a non-zero offset on a stopped transport, which
+    //       is the root cause of the "won't restart" bug.
     stop() {
+        // WHAT: Guard against double-stop calls.
+        // WHY:  The UI can trigger stop() multiple times (e.g. dedicated STOP
+        //       button while already stopped).  Without this guard, we'd
+        //       redundantly unregister from the Clock and potentially cancel
+        //       another instrument's transport.
+        if (!this.is_running_boolean) return;
+
         this._sequence_instance.stop();
         window.Clock.stop(this.client_id_string);
         this.is_running_boolean = false;

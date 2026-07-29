@@ -32,14 +32,24 @@ class TransportManager {
     }
 
     // WHAT: Unregisters a client and stops the transport only when no
-    //       clients remain.
+    //       clients remain.  Also resets the transport position to 0.
     // WHY:  This is the core fix — stopping the 303 no longer kills the
     //       Sampler (or vice-versa), because the transport survives as
-    //       long as any instrument still needs it.
+    //       long as any instrument still needs it.  Resetting to position 0
+    //       after the last client leaves prevents stale timeline positions
+    //       from blocking future starts.
     stop(client_id_string) {
         this.active_clients_set.delete(client_id_string);
         if (this.active_clients_set.size === 0) {
             Tone.Transport.stop();
+
+            // WHAT: Cancel all scheduled events and reset position to 0.
+            // WHY:  Tone.Transport remembers its position after stop().  If we
+            //       don't reset, the next Tone.Sequence.start(0) targets a time
+            //       that's already in the past relative to the transport's
+            //       internal clock — so the sequence never fires.
+            Tone.Transport.cancel();
+            Tone.Transport.position = 0;
         }
     }
 

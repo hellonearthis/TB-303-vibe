@@ -10,14 +10,30 @@
 </head>
 <body>
     <div class="app-container">
-        <div style="text-align: center; margin-bottom: 1rem; color: var(--text-color);">
-            <label for="mode-selector" style="font-weight: 800;">MODE: </label>
-            <select id="mode-selector" style="background: var(--bg-surface); color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'Share Tech Mono', monospace;">
-                <option value="acid">ACID</option>
-                <option value="dnb">DRUM & BASS</option>
-            </select>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; color: var(--text-color); background: rgba(0,0,0,0.3); padding: 8px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+            <div>
+                <label for="mode-selector" style="font-weight: 800; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;">MODE: </label>
+                <select id="mode-selector" style="background: var(--bg-surface, #1e1e23); color: var(--text-color, #fff); border: 1px solid var(--border-color, #555); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-family: 'Share Tech Mono', monospace;">
+                    <option value="acid">ACID</option>
+                    <option value="dnb">DRUM & BASS</option>
+                </select>
+            </div>
+            
+            <!-- MASTER AUDIO RECORDER -->
+            <div id="master-recorder-panel" style="display: flex; align-items: center; gap: 8px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;">
+                <span style="font-weight: 800; color: #ff3366; letter-spacing: 0.05em;">MASTER REC:</span>
+                <button id="btn-master-rec-start" style="background: #ff3366; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">● REC</button>
+                <button id="btn-master-rec-stop" disabled style="background: #555; color: #ccc; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; opacity: 0.6;">■ STOP</button>
+                <span id="master-rec-status" style="color: #aaa; font-size: 0.78rem; min-width: 70px;">OFFLINE</span>
+                <select id="master-rec-format" style="background: #1e1e23; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; font-family: inherit;">
+                    <option value="wav">WAV (Lossless)</option>
+                    <option value="webm">WebM Audio</option>
+                </select>
+                <button id="btn-master-rec-download" disabled style="background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; opacity: 0.5;">⬇ DOWNLOAD</button>
+            </div>
         </div>
 
+    <div class="workstation-layout">
         <main class="tb303-module">
         <header>
             <h1>TB-303</h1>
@@ -122,11 +138,11 @@
 
         </main>
         <aside class="sampler-module" aria-label="KO-40 sampler and recorder">
-            <div class="sampler-topline"><div><span class="sampler-kicker">MICRO SAMPLER</span><h2>KO–40</h2></div><div class="sampler-memory"><span id="sampler-time">40.0s</span><small>FREE</small></div></div>
+            <div class="sampler-topline"><div><span class="sampler-kicker">MICRO SAMPLER</span><h2>KO–40</h2></div></div>
             <div class="sampler-screen" aria-live="polite"><span id="sampler-display-main">SELECT A SLOT</span><span id="sampler-display-sub">MIC READY · PATTERN 01</span><div class="sampler-meter"><i id="sampler-meter-fill"></i></div></div>
             <div class="sampler-toolbar"><button id="sampler-source" title="Click to cycle: microphone, 303, Moog, Monotron">SRC: MIC</button><button id="sampler-record" class="sampler-record-btn">● REC</button><button id="sampler-clear">CLEAR</button></div>
             <div class="sampler-section-label"><span>SAMPLE BANK</span><span>8 MELODIC · 8 DRUM</span></div><div id="sampler-slots" class="sampler-slots"></div><div id="sampler-keys" class="sampler-keys" aria-label="Chromatic sample keyboard"></div>
-            <div class="sampler-controls-row"><label>FX<select id="sampler-fx"><option value="clean">01 CLEAN</option><option value="lowpass">02 LOW PASS</option><option value="highpass">03 HIGH PASS</option><option value="drive">04 DRIVE</option><option value="crusher">05 CRUSH</option><option value="delay">06 DELAY</option><option value="reverb">07 SPACE</option><option value="chorus">08 CHORUS</option><option value="phaser">09 PHASER</option><option value="tremolo">10 TREMOLO</option><option value="vibrato">11 VIBRATO</option><option value="pitchup">12 PITCH +7</option><option value="pitchdown">13 PITCH −7</option><option value="reverse">14 REVERSE</option><option value="filtermove">15 SWEEP</option><option value="stutter">16 STUTTER</option></select></label><label>PATTERN<select id="sampler-pattern"></select></label><label>LEVEL<input id="sampler-volume" type="range" min="0" max="1" step="0.01" value="0.8"></label></div>
+            <div class="sampler-controls-row"><label>FX<select id="sampler-fx"><option value="clean">01 CLEAN</option><option value="lowpass">02 LOW PASS</option><option value="highpass">03 HIGH PASS</option><option value="drive">04 DRIVE</option><option value="crusher">05 CRUSH</option><option value="delay">06 DELAY</option><option value="reverb">07 SPACE</option><option value="chorus">08 CHORUS</option><option value="phaser">09 PHASER</option><option value="tremolo">10 TREMOLO</option><option value="vibrato">11 VIBRATO</option><option value="pitchup">12 PITCH +7</option><option value="pitchdown">13 PITCH −7</option><option value="reverse">14 REVERSE</option><option value="filtermove">15 SWEEP</option><option value="stutter">16 STUTTER</option></select></label><label>PATTERN<select id="sampler-pattern"></select></label><label>PAD VOL<input id="sampler-pad-volume" type="range" min="0" max="1" step="0.01" value="1.0" title="Selected pad volume"></label><label>LEVEL<input id="sampler-volume" type="range" min="0" max="1" step="0.01" value="0.8"></label></div>
             <div class="sampler-section-label"><span>16 STEP SEQUENCER</span><span class="sampler-pattern-actions"><button id="sampler-pattern-play">PLAY</button><button id="sampler-pattern-stop">STOP</button><button id="sampler-pattern-clear">CLEAR</button></span></div>
             <div id="sampler-steps" class="sampler-steps"></div>
             <div id="sampler-step-editor" class="sampler-step-editor" style="display:none">
@@ -149,16 +165,29 @@
                         <span class="step-ctrl-label">FX OVERRIDE</span>
                         <select id="sampler-step-fx">
                             <option value="">— GLOBAL FX —</option>
-                            <option value="reverse">REVERSE</option>
-                            <option value="pitchup">PITCH +7</option>
-                            <option value="pitchdown">PITCH −7</option>
-                            <option value="stutter">STUTTER</option>
+                            <option value="clean">01 CLEAN</option>
+                            <option value="lowpass">02 LOW PASS</option>
+                            <option value="highpass">03 HIGH PASS</option>
+                            <option value="drive">04 DRIVE</option>
+                            <option value="crusher">05 CRUSH</option>
+                            <option value="delay">06 DELAY</option>
+                            <option value="reverb">07 SPACE</option>
+                            <option value="chorus">08 CHORUS</option>
+                            <option value="phaser">09 PHASER</option>
+                            <option value="tremolo">10 TREMOLO</option>
+                            <option value="vibrato">11 VIBRATO</option>
+                            <option value="pitchup">12 PITCH +7</option>
+                            <option value="pitchdown">13 PITCH −7</option>
+                            <option value="reverse">14 REVERSE</option>
+                            <option value="filtermove">15 SWEEP</option>
+                            <option value="stutter">16 STUTTER</option>
                         </select>
                     </label>
                 </div>
             </div>
             <div class="sampler-help">Click steps to program · click active steps to edit pitch &amp; velocity · PLAY runs sampler independently</div>
         </aside>
+    </div>
 
         <!-- Moog Grandmother Drone Synth -->
         <section class="grandmother-section" id="grandmother-section">
