@@ -55,9 +55,14 @@ class MIDIController {
             'cc_23': { parameter: 'monotron-volume', min: 0, max: 1, log: false },
 
             // Mute buttons (Note On toggle) — keyed as 'note_<number>'
-            'note_16': { parameter: 'pedal-overdrive', type: 'toggle' },
-            'note_17': { parameter: 'pedal-delay',     type: 'toggle' },
-            'note_18': { parameter: 'pedal-phaser',    type: 'toggle' },
+            'note_16': { parameter: 'pedal-overdrive',  type: 'toggle' },
+            'note_17': { parameter: 'pedal-distortion', type: 'toggle' },
+            'note_18': { parameter: 'pedal-fuzz',       type: 'toggle' },
+            'note_19': { parameter: 'pedal-chorus',     type: 'toggle' },
+            'note_20': { parameter: 'pedal-phaser',     type: 'toggle' },
+            'note_21': { parameter: 'pedal-tremolo',    type: 'toggle' },
+            'note_22': { parameter: 'pedal-delay',      type: 'toggle' },
+            'note_23': { parameter: 'pedal-reverb',     type: 'toggle' },
 
             // Transport (Note On) — keyed as 'note_<number>'
             'note_94': { parameter: 'transport-play', type: 'transport' },

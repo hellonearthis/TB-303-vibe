@@ -9,18 +9,14 @@ class TB303AudioEngine {
             filterEnvelope: { attack: 0.01, decay: 0.4, sustain: 0, release: 0.1, baseFrequency: 300, octaves: 4, exponent: 2 }
         });
 
-        // Pedals
-        this.distortion = new Tone.Distortion(0.8);
-        this.distortion.wet.value = 0; // Off by default
-
-        this.phaser = new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 1000 });
-        this.phaser.wet.value = 0; // Off by default
-
-        this.delay = new Tone.FeedbackDelay("8n.", 0.4);
-        this.delay.wet.value = 0; // Off by default
-
         this.dynamicsVolume = new Tone.Volume(-6); // Internal dynamics (accents/ghosts)
         this.masterVolume = new Tone.Volume(-9); // Master volume for user control
+
+        // WHAT: A pass-through gain node inserted before the PedalBoard's serial effect chain.
+        // WHY:  The PedalBoard owns the routing from pedalInsert → [8 effects] → masterVolume.
+        //       This node acts as the handoff point so the 303's own signal chain doesn't
+        //       need to know anything about pedal internals.
+        this.pedalInsert = new Tone.Gain();
 
         // Blend a two-pole and cascaded four-pole path to approximate the original
         // TB-303's intermediate three-pole (-18 dB/octave) response in Tone.js.
@@ -30,7 +26,31 @@ class TB303AudioEngine {
         this.synth.connect(this.slopeFilter);
         this.slopeFilter.connect(this.slopeBlend.b);
         this.synth.filterEnvelope.connect(this.slopeFilter.frequency);
-        this.slopeBlend.chain(this.distortion, this.phaser, this.delay, this.dynamicsVolume, this.masterVolume, Tone.Destination);
+
+        // WHAT: Route the synth output through dynamics control to the pedalInsert handoff.
+        // WHY:  The old chain was slopeBlend → distortion → phaser → delay → dynamicsVolume → masterVolume.
+        //       Now the PedalBoard inserts its own serial chain between pedalInsert and masterVolume.
+        this.dynamicsVolume = new Tone.Volume(0);
+        
+        // Final routing to PedalBoard
+        this.pedalInsert = new Tone.Gain();
+        
+        // WHAT: Add a tiny, inaudible DC offset to the signal path before the pedals.
+        // WHY:  When the 303 envelope fully closes, the signal goes to exactly 0. This causes the cascade 
+        //       of IIR filters in the pedals and Monotron to process "denormal" floating point numbers,
+        //       which can cause a 100x CPU spike on Windows machines, completely freezing the browser.
+        this.antiDenormal = new Tone.Signal(1e-8);
+        this.antiDenormal.connect(this.pedalInsert);
+
+        this.slopeBlend.chain(this.dynamicsVolume, this.pedalInsert);
+        this.masterVolume.toDestination();
+
+        // WHAT: Register the 303 module with the shared PedalBoard.
+        // WHY:  PedalBoard creates a dedicated set of 8 effect instances for the 303
+        //       and wires them: pedalInsert → [effects] → masterVolume.
+        if (window.PedalBoard) {
+            window.PedalBoard.registerModule('303', this.pedalInsert, this.masterVolume);
+        }
 
         // WHAT: Expose masterVolume as 'volume' so that aux routing (Grandmother/Monotron) still works.
         // WHY: Other modules reference window.AudioEngine.volume to disconnect/reconnect the final output node.
@@ -58,18 +78,7 @@ class TB303AudioEngine {
         this.updateSynthParams();
     }
 
-    // WHAT: Toggles the effect pedals on or off in the signal chain.
-    // WHY: Allows the user to bypass or engage effects like overdrive, phaser, and delay dynamically during playback.
-    setPedal(pedal_name, is_pedal_active) {
-        if (pedal_name === 'overdrive') {
-            this.distortion.wet.value = is_pedal_active ? 1 : 0;
-        } else if (pedal_name === 'phaser') {
-            this.phaser.wet.value = is_pedal_active ? 1 : 0;
-        } else if (pedal_name === 'delay') {
-            // Mix delay to 50% when active
-            this.delay.wet.value = is_pedal_active ? 0.5 : 0;
-        }
-    }
+
 
     // WHAT: Applies the normalized parameters (0-1) to the actual Tone.js synthesizer nodes.
     // WHY: Tone.js requires specific real-world values (like Hertz or seconds). This function translates our abstract UI slider values into usable DSP numbers.
@@ -148,11 +157,15 @@ class TB303AudioEngine {
             }
         }
     }
+    // WHAT: Sustains the synth envelope during a tie step so the note continues without retriggering.
+    // WHY: Ties are how the 303 creates long sustained notes across multiple 16th-note steps.
     playTie(scheduled_time, step_duration_seconds, continues_to_another_tie) {
         if (!continues_to_another_tie) {
             this.synth.triggerRelease(scheduled_time + (step_duration_seconds * 0.95));
         }
     }
+    // WHAT: Instantly stops all sound and resets the portamento glide.
+    // WHY: Called when the sequencer stops to prevent trailing notes or slides bleeding into the next play.
     stopAll() {
         if (this.synth) {
             this.synth.triggerRelease(Tone.now());
@@ -172,13 +185,18 @@ window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
         window.AudioEngine.setParam(parameter, scaledValue);
     }
 });
-window.addEventListener('midiNoteOn', async event => {
+
+// WHAT: Listens for MIDI Note On events to trigger the 303 synthesizer externally.
+// WHY: Allows the user to play the 303 like a standard keyboard synth when '303' is selected in the UI.
+window.addEventListener('midiNoteOn', async (midi_note_on_event_object) => {
     if (document.getElementById('midi-note-target')?.value !== '303') return;
     await Tone.start();
-    const { frequency, velocity } = event.detail;
+    const { frequency, velocity } = midi_note_on_event_object.detail;
     window.AudioEngine.synth.triggerAttack(frequency, Tone.now(), velocity / 127);
 });
 
+// WHAT: Listens for MIDI Note Off events to release the 303 synthesizer externally.
+// WHY: Ensures notes don't drone on forever when the user releases a key on their MIDI controller.
 window.addEventListener('midiNoteOff', () => {
     if (document.getElementById('midi-note-target')?.value === '303') window.AudioEngine.synth.triggerRelease();
 });

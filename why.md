@@ -22,3 +22,5 @@ This project was a massive learning experience in both digital signal processing
 
 ## What's next for TB-303-vibe
 In the future, we want to expand the TB-303-vibe ecosystem. Potential features include implementing a drum machine companion (like an 808 or 909) to create a complete acid house groovebox within the browser. We also plan to add audio export functionality so users can download their loops as WAV files, and introduce a patch-sharing system so the community can share their favorite 303 patterns and rack configurations online.
+
+We recently took a major architectural step by decoupling the effect pedals from the 303 to create a global **Multi-Module Pedal Board**. By routing individual synths (303, Moog, Monotron, Sampler) through their own dedicated serial chains of 8 stompboxes, we successfully avoided audio cross-bleed while massively expanding the sound design possibilities of the entire virtual studio rack!

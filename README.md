@@ -81,11 +81,13 @@ Use the top panel knobs to sculpt the synth patch:
 - **Decay**: Sets how quickly the envelope falls from its peak down to silence.
 - **Accent**: Controls how much effect the Accent lane has. If it's at zero, accented steps sound just like normal steps. Turn it to at least 70% or higher to hear the pattern come alive.
 
-### The Pedal Board (Effects)
-To the left of the sequencer grid, you'll find three classic stompbox pedals to process the raw 303 signal:
-- **Overdrive**: A definitive companion for the 303. This soft-clips the audio, catching sharp Accents and turning them into aggressive, ripping screams while adding rich harmonics to the lower notes.
-- **Delay**: A dotted-eighth delay that transforms sparse sequences into complex, cascading walls of sound.
-- **Phaser**: Adds a slow, sweeping liquid movement to the filter cutoff, giving the sequence a constantly evolving feel.
+### Multi-Module Pedal Board (Effects)
+To the left of the sequencer grid, you'll find a versatile Pedal Board boasting 8 classic stompbox effects categorized into Gain, Time, and Modulation. What makes this pedal board special is its **Multi-Module Routing**:
+- **Gain**: Overdrive (amp saturation), Distortion (hard clipping), Fuzz (bit-crusher destruction).
+- **Time**: Delay (cascading repeats) and Reverb (spatial reflections).
+- **Modulation**: Chorus (thickening detune), Phaser (liquid sweeping), Tremolo (rhythmic volume).
+
+You can enable each pedal independently and use the routing checkboxes to send the **303**, **Moog**, **Monotron**, or **Sampler** through them. The system creates a dedicated serial effect chain for each instrument, preventing cross-bleed while letting every module benefit from the full pedal catalogue.
 
 ### Pattern Memory (1-9)
 The emulator features 9 slots for pattern memory. Slots 1 through 4 are pre-loaded with classic, intricately programmed acid house grooves (complete with optimized Slides and Accents) to get you started!

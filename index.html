@@ -103,17 +103,129 @@
                 <div class="left-panel">
                     <div class="pedal-board">
                         <h3>Pedals</h3>
-                        <div class="pedal">
-                            <input type="checkbox" id="pedal-overdrive" class="pedal-switch">
-                            <label for="pedal-overdrive">Overdrive</label>
+
+                        <!-- Gain Category -->
+                        <div class="pedal-category">
+                            <span class="pedal-category-label">GAIN</span>
+                            <div class="pedal-row" data-pedal="overdrive">
+                                <input type="checkbox" id="pedal-overdrive" class="pedal-enable">
+                                <label for="pedal-overdrive" class="pedal-name">Overdrive</label>
+                                <div class="pedal-routes">
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                </div>
+                            </div>
+                            <div class="pedal-row" data-pedal="distortion">
+                                <input type="checkbox" id="pedal-distortion" class="pedal-enable">
+                                <label for="pedal-distortion" class="pedal-name">Distortion</label>
+                                <div class="pedal-routes">
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                </div>
+                            </div>
+                            <div class="pedal-row" data-pedal="fuzz">
+                                <input type="checkbox" id="pedal-fuzz" class="pedal-enable">
+                                <label for="pedal-fuzz" class="pedal-name">Fuzz</label>
+                                <div class="pedal-routes">
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                </div>
+                            </div>
                         </div>
-                        <div class="pedal">
-                            <input type="checkbox" id="pedal-delay" class="pedal-switch">
-                            <label for="pedal-delay">Delay</label>
+
+                        <!-- Time-Based Category -->
+                        <div class="pedal-category">
+                            <span class="pedal-category-label">TIME</span>
+                            <div class="pedal-row" data-pedal="delay">
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-delay" class="pedal-enable">
+                                    <label for="pedal-delay" class="pedal-name">Delay</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Time</label><input type="range" class="pedal-param-slider" data-param="time" min="0.05" max="1.5" step="0.01" value="0.4"></div>
+                                    <div class="pedal-param"><label>Fback</label><input type="range" class="pedal-param-slider" data-param="feedback" min="0" max="0.9" step="0.01" value="0.4"></div>
+                                    <div class="pedal-param"><label>Mix</label><input type="range" class="pedal-param-slider" data-param="mix" min="0" max="1" step="0.01" value="0.5"></div>
+                                    <div class="pedal-param"><label>Mod</label><input type="range" class="pedal-param-slider" data-param="mod" min="0" max="1" step="0.01" value="0"></div>
+                                    <div class="pedal-param"><label>Tone</label><input type="range" class="pedal-param-slider" data-param="tone" min="200" max="10000" step="10" value="2000"></div>
+                                </div>
+                            </div>
+                            <div class="pedal-row" data-pedal="reverb">
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-reverb" class="pedal-enable">
+                                    <label for="pedal-reverb" class="pedal-name">Reverb</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Decay</label><input type="range" class="pedal-param-slider" data-param="decay" min="0.5" max="10" step="0.1" value="3"></div>
+                                    <div class="pedal-param"><label>Pre</label><input type="range" class="pedal-param-slider" data-param="preDelay" min="0" max="0.2" step="0.01" value="0.01"></div>
+                                    <div class="pedal-param"><label>Mix</label><input type="range" class="pedal-param-slider" data-param="mix" min="0" max="1" step="0.01" value="0.6"></div>
+                                    <div class="pedal-param"><label>Tone</label><input type="range" class="pedal-param-slider" data-param="tone" min="500" max="10000" step="10" value="3000"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="pedal">
-                            <input type="checkbox" id="pedal-phaser" class="pedal-switch">
-                            <label for="pedal-phaser">Phaser</label>
+
+                        <!-- Modulation Category -->
+                        <div class="pedal-category">
+                            <span class="pedal-category-label">MODULATION</span>
+                            <div class="pedal-row" data-pedal="chorus">
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-chorus" class="pedal-enable">
+                                    <label for="pedal-chorus" class="pedal-name">Chorus</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Rate</label><input type="range" class="pedal-param-slider" data-param="rate" min="0.1" max="10" step="0.1" value="3"></div>
+                                    <div class="pedal-param"><label>Depth</label><input type="range" class="pedal-param-slider" data-param="depth" min="0" max="1" step="0.01" value="0.6"></div>
+                                </div>
+                            </div>
+                            <div class="pedal-row" data-pedal="phaser">
+                                <input type="checkbox" id="pedal-phaser" class="pedal-enable">
+                                <label for="pedal-phaser" class="pedal-name">Phaser</label>
+                                <div class="pedal-routes">
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                </div>
+                            </div>
+                            <div class="pedal-row" data-pedal="tremolo">
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-tremolo" class="pedal-enable">
+                                    <label for="pedal-tremolo" class="pedal-name">Tremolo</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Rate</label><input type="range" class="pedal-param-slider" data-param="frequency" min="0.1" max="20" step="0.1" value="4"></div>
+                                    <div class="pedal-param"><label>Depth</label><input type="range" class="pedal-param-slider" data-param="depth" min="0" max="1" step="0.01" value="0.7"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="sequencer-instructions">
@@ -137,7 +249,7 @@
         </section>
 
         </main>
-        <aside class="sampler-module" aria-label="KO-40 sampler and recorder">
+        <aside class="sampler-module" id="sampler-section" aria-label="KO-40 sampler and recorder">
             <div class="sampler-topline"><div><span class="sampler-kicker">MICRO SAMPLER</span><h2>KO–40</h2></div></div>
             <div class="sampler-screen" aria-live="polite"><span id="sampler-display-main">SELECT A SLOT</span><span id="sampler-display-sub">MIC READY · PATTERN 01</span><div class="sampler-meter"><i id="sampler-meter-fill"></i></div></div>
             <div class="sampler-toolbar"><button id="sampler-source" title="Click to cycle: microphone, 303, Moog, Monotron">SRC: MIC</button><button id="sampler-record" class="sampler-record-btn">● REC</button><button id="sampler-clear">CLEAR</button></div>
@@ -185,6 +297,25 @@
                     </label>
                 </div>
             </div>
+
+            <!-- Pattern Sequence Editor -->
+            <div id="sampler-seq-editor" class="sampler-seq-editor">
+                <div class="sampler-seq-header" id="sampler-seq-toggle-row">
+                    <span>PATTERN SEQUENCE</span>
+                    <button id="sampler-seq-toggle" class="sampler-seq-toggle-btn" aria-expanded="false">▸ EXPAND</button>
+                </div>
+                <div id="sampler-seq-body" class="sampler-seq-body" style="display:none">
+                    <textarea id="sampler-seq-input" class="sampler-seq-input" spellcheck="false"
+                        placeholder='[{"pattern":1},{"pattern":2},{"pattern":3}]'></textarea>
+                    <div class="sampler-seq-error" id="sampler-seq-error"></div>
+                    <div id="sampler-seq-list" class="sampler-seq-list" aria-label="Sequence entry pills"></div>
+                    <div class="sampler-seq-controls">
+                        <button id="sampler-seq-play" class="sampler-seq-btn sampler-seq-play-btn" disabled>▶ SEQ PLAY</button>
+                        <button id="sampler-seq-stop" class="sampler-seq-btn sampler-seq-stop-btn">■ SEQ STOP</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="sampler-help">Click steps to program · click active steps to edit pitch &amp; velocity · PLAY runs sampler independently</div>
         </aside>
     </div>
@@ -397,22 +528,23 @@
 
     </div>
 
-    <script src="core/clock.js"></script>
-    <script src="core/pattern.js"></script>
-    <script src="core/rack.js"></script>
-    <script src="core/mode.js"></script>
-    <script src="core/bus.js"></script>
-    <script src="core/midi-registry.js"></script>
-    <script src="audio.js"></script>
-    <script src="grandmother-audio.js"></script>
-    <script src="monotron-audio.js"></script>
-    <script src="midi.js"></script>
-    <script src="sequencer.js"></script>
-    <script src="sampler.js"></script>
-    <script src="sampler-ui.js"></script>
-    <script src="app.js"></script>
-    <script src="tb303-ui.js"></script>
-    <script src="grandmother-ui.js"></script>
-    <script src="monotron-ui.js"></script>
+    <script src="core/clock.js?v=2"></script>
+    <script src="core/pattern.js?v=2"></script>
+    <script src="core/rack.js?v=2"></script>
+    <script src="core/mode.js?v=2"></script>
+    <script src="core/bus.js?v=2"></script>
+    <script src="core/midi-registry.js?v=2"></script>
+    <script src="core/pedalboard.js?v=2"></script>
+    <script src="audio.js?v=2"></script>
+    <script src="grandmother-audio.js?v=2"></script>
+    <script src="monotron-audio.js?v=2"></script>
+    <script src="midi.js?v=2"></script>
+    <script src="sequencer.js?v=2"></script>
+    <script src="sampler.js?v=2"></script>
+    <script src="sampler-ui.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+    <script src="tb303-ui.js?v=2"></script>
+    <script src="grandmother-ui.js?v=2"></script>
+    <script src="monotron-ui.js?v=2"></script>
 </body>
 </html>

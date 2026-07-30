@@ -29,6 +29,18 @@ class MonotronAudio {
         this.extInput.gain.value = 1.0; // Aux volume
         this.extInput.connect(this.vcf);
         
+        // WHAT: Add an inaudible DC offset to the VCF to prevent denormal numbers.
+        // WHY:  When external signals (like the 303) decay to 0, cascaded IIR filters process
+        //       denormals, causing extreme CPU spikes that freeze the browser on Windows.
+        this.antiDenormal = this.ctx.createBufferSource();
+        const buffer = this.ctx.createBuffer(1, 2, this.ctx.sampleRate);
+        buffer.getChannelData(0)[0] = 1e-8;
+        buffer.getChannelData(0)[1] = 1e-8;
+        this.antiDenormal.buffer = buffer;
+        this.antiDenormal.loop = true;
+        this.antiDenormal.start();
+        this.antiDenormal.connect(this.vcf);
+        
         // LFO (for Original Monotron)
         this.lfo = this.ctx.createOscillator();
         this.lfo.type = 'triangle';
@@ -73,13 +85,32 @@ class MonotronAudio {
         this.delay.delayTime.value = 0.25;
         this.delayFeedback.gain.value = 0.45;
         this.vcf.connect(this.dryGain);
-        this.dryGain.connect(this.masterVolume);
         this.vcf.connect(this.delay);
         this.delay.connect(this.delayWet);
-        this.delayWet.connect(this.masterVolume);
         this.delay.connect(this.delayFeedback);
         this.delayFeedback.connect(this.delay);
+
+        // WHAT: A native Web Audio GainNode inserted before the PedalBoard's serial effect chain.
+        // WHY:  Both the dry path and the Monotron's own delay-wet path merge into this node,
+        //       then the PedalBoard's serial chain processes the combined signal before it
+        //       reaches masterVolume. Tone.connect() bridges native nodes with Tone.js effects.
+        this.pedalInsert = this.ctx.createGain();
+        this.pedalInsert.gain.value = 1;
+        this.dryGain.connect(this.pedalInsert);
+        this.delayWet.connect(this.pedalInsert);
+
+        // WHAT: masterVolume connects to Destination — PedalBoard wires pedalInsert → [effects] → masterVolume.
+        // WHY:  The PedalBoard handles the routing between pedalInsert and masterVolume,
+        //       so the Monotron itself must NOT connect them directly.
         Tone.connect(this.masterVolume, Tone.Destination);
+
+        // WHAT: Register the Monotron module with the shared PedalBoard.
+        // WHY:  Creates a dedicated set of 8 Tone.js effect instances for the Monotron.
+        //       Tone.connect() inside PedalBoard.registerModule() safely bridges the native
+        //       pedalInsert GainNode with the first Tone.js effect in the serial chain.
+        if (window.PedalBoard) {
+            window.PedalBoard.registerModule('monotron', this.pedalInsert, this.masterVolume);
+        }
         
         // Start oscillators immediately (VCA keeps them silent)
         this.vco1.start();
@@ -95,6 +126,7 @@ class MonotronAudio {
         if (window.Bus) {
             window.Bus.registerDestination('monotron_ext_in', this.extInput);
         }
+
     }
     
     // WHAT: Sets the base frequency of the primary oscillator.

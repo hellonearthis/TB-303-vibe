@@ -94,6 +94,22 @@ The sampler has **16 patterns**, each with **16 steps**.
 
 `CLEAR` in the sequencer section clears the current sampler pattern (not the samples).
 
+## Pattern Sequence Editor
+
+The sampler has a dedicated **Pattern Sequence Editor** below the step sequencer. It lets you arrange the 16 pattern slots into a linear play order, looping back to the beginning when it finishes.
+
+- **Expanding the editor**: Click `▸ EXPAND` in the `PATTERN SEQUENCE` panel.
+- **Specifying the sequence**: The sequence is defined using a JSON array of objects, where each object has a `"pattern"` key (integer 1–16).
+  - Example sequence: `[{"pattern": 1}, {"pattern": 3}, {"pattern": 2}, {"pattern": 3}]`
+  - The editor validates your JSON in real-time. If it is invalid, a warning indicator will explain the error and the play button will be disabled.
+- **Pill list**: A visual sequence layout appears as you type:
+  - When the sequencer is stopped, click a pill to jump to that pattern slot for quick previewing/editing.
+  - When playing, the active pattern pill highlights and glows to track playback position in real-time.
+- **Transport**:
+  - `▶ SEQ PLAY`: Starts playback from the first entry of the sequence.
+  - `■ SEQ STOP`: Stops sequence playback and resets the position to the start.
+
+
 ## Level
 
 `LEVEL` controls sampler output volume only.

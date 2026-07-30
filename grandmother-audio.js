@@ -3,6 +3,8 @@
  * Free mode uses independent modulation timing; 303 mode follows sequencer steps.
  */
 class MoogGrandmotherEngine {
+    // WHAT: Initializes the Moog Grandmother synthesizer engine with its default parameters, Tone.js nodes, and audio routing matrix.
+    // WHY: Encapsulates all DSP components (oscillators, filters, envelopes, LFOs, Sample & Hold) into a single cohesive class that can be triggered by the UI or clock.
     constructor() {
         this.isPlaying = false;
         this.oscillatorsStarted = false;
@@ -66,14 +68,44 @@ class MoogGrandmotherEngine {
         });
         this.filter.connect(this.envelope);
 
+        // External Input (Aux in)
+        this.extInput = Tone.context.createGain();
+        this.extInput.gain.value = 1.0;
+        this.extInput.connect(this.filter);
+        
+        // WHAT: Add an inaudible DC offset to the VCF to prevent denormal numbers.
+        // WHY:  When external signals (like the 303) decay to 0, cascaded IIR filters process
+        //       denormals, causing extreme CPU spikes that freeze the browser on Windows.
+        this.antiDenormal = Tone.context.createBufferSource();
+        const buffer = Tone.context.createBuffer(1, 2, Tone.context.sampleRate);
+        buffer.getChannelData(0)[0] = 1e-8;
+        buffer.getChannelData(0)[1] = 1e-8;
+        this.antiDenormal.buffer = buffer;
+        this.antiDenormal.loop = true;
+        this.antiDenormal.start();
+        this.antiDenormal.connect(this.filter);
+
         this.volume = new Tone.Volume(-12);
         this.envelope.connect(this.volume);
+
+        // WHAT: A pass-through gain node inserted before the PedalBoard's serial effect chain.
+        // WHY:  The PedalBoard owns the routing from pedalInsert → [8 effects] → reverb.
+        //       The Grandmother's own spring reverb sits AFTER the pedal chain so reverbed
+        //       audio also passes through pedal effects if desired.
+        this.pedalInsert = new Tone.Gain();
+        this.volume.connect(this.pedalInsert);
+
         this.reverb = new Tone.Freeverb({ roomSize: 0.75, dampening: 3000 });
-        this.volume.connect(this.reverb);
+        // WHAT: PedalBoard wires pedalInsert → [effects] → reverb. Reverb outputs to Destination.
+        // WHY:  The spring reverb is the Grandmother's final signature stage, always last in the chain.
         this.reverb.toDestination();
 
-        this.extInput = new Tone.Gain(1);
-        this.extInput.connect(this.mixer);
+        // WHAT: Register the Moog Grandmother with the shared PedalBoard.
+        // WHY:  Creates a dedicated set of 8 effect instances for this module so there is
+        //       no audio cross-bleed with the 303 or other modules sharing pedal types.
+        if (window.PedalBoard) {
+            window.PedalBoard.registerModule('moog', this.pedalInsert, this.reverb);
+        }
 
         this.modLFO = new Tone.LFO({ type: 'sine', frequency: 0.5, min: -30, max: 30 });
         this.modLFOFilterGain = new Tone.Gain(0);
@@ -96,6 +128,7 @@ class MoogGrandmotherEngine {
         if (window.Bus) {
             window.Bus.registerDestination('grandmother_ext_in', this.extInput);
         }
+
 
         this._applyParams();
     }

@@ -39,10 +39,7 @@ class TB303Instrument extends window.Instrument {
         const accent_amount_input_element = document.getElementById('accent-amount');
         const volume_input_element = document.getElementById('volume');
         
-        // Pedals
-        const pedal_overdrive_element = document.getElementById('pedal-overdrive');
-        const pedal_delay_element = document.getElementById('pedal-delay');
-        const pedal_phaser_element = document.getElementById('pedal-phaser');
+
 
         // --- Build Grid UI ---
         // WHAT: Renders the 16-step monophonic note grid along with per-step octave, tie, slide, accent, and ghost modifier rows.
@@ -270,10 +267,7 @@ class TB303Instrument extends window.Instrument {
         accent_amount_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('accentAmount', parseFloat(event_object.target.value)));
         volume_input_element.addEventListener('input', (event_object) => audio_engine_instance.setParam('volume', parseFloat(event_object.target.value)));
 
-        // Pedal listeners
-        pedal_overdrive_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('overdrive', event_object.target.checked));
-        pedal_delay_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('delay', event_object.target.checked));
-        pedal_phaser_element.addEventListener('change', (event_object) => audio_engine_instance.setPedal('phaser', event_object.target.checked));
+
         
         // --- MIDI CC & Learn Registration ---
         if (window.MIDIRegistry) {
@@ -285,9 +279,7 @@ class TB303Instrument extends window.Instrument {
             window.MIDIRegistry.register('accentAmount', accent_amount_input_element.closest('.knob-group'));
             window.MIDIRegistry.register('volume', volume_input_element.closest('.knob-group'));
 
-            window.MIDIRegistry.register('pedal-overdrive', pedal_overdrive_element.closest('.pedal'));
-            window.MIDIRegistry.register('pedal-delay', pedal_delay_element.closest('.pedal'));
-            window.MIDIRegistry.register('pedal-phaser', pedal_phaser_element.closest('.pedal'));
+
 
             window.MIDIRegistry.register('transport-play', play_button_element);
             window.MIDIRegistry.register('transport-stop', stop_button_element);

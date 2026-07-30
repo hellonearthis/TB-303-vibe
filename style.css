@@ -252,30 +252,116 @@ button {
     padding-bottom: 0.5rem;
 }
 
-.pedal {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.pedal-category {
     margin-bottom: 0.8rem;
 }
 
-.pedal:last-child {
+.pedal-category:last-child {
     margin-bottom: 0;
 }
 
-.pedal input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+.pedal-category-label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--accent-color);
+    margin-bottom: 0.3rem;
+    letter-spacing: 1px;
+}
+
+.pedal-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.pedal-row:has(.pedal-params) {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.pedal-main-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.pedal-params {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    background: rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-left: 1.2rem;
+}
+
+.pedal-param {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.pedal-param label {
+    width: 35px;
+}
+
+.pedal-param-slider {
+    flex: 1;
+    accent-color: var(--accent-color);
+    height: 4px;
+}
+
+.pedal-row:last-child {
+    margin-bottom: 0;
+}
+
+.pedal-enable {
+    width: 14px;
+    height: 14px;
     cursor: pointer;
     accent-color: var(--accent-color);
 }
 
-.pedal label {
+.pedal-name {
+    flex: 1;
     cursor: pointer;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: var(--text-main);
-    text-transform: uppercase;
+}
+
+/* Dim the route checkboxes when the pedal is globally disabled */
+.pedal-row:has(.pedal-enable:not(:checked)) .pedal-routes {
+    opacity: 0.3;
+}
+
+.pedal-routes {
+    display: flex;
+    gap: 0.3rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    transition: opacity 0.2s;
+}
+
+.pedal-route-label {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.pedal-route {
+    width: 10px;
+    height: 10px;
+    cursor: pointer;
+    margin: 0;
+    accent-color: #4fd1a1; /* distinctive color for routing vs enable */
 }
 
 .sequencer-instructions p {
@@ -851,11 +937,9 @@ button {
 .btn-midi-reset {
     font-size: 0.7rem;
     padding: 0.3rem 0.5rem;
-}
-
-/* MIDI Learn mode — global body state */
+}/* MIDI Learn mode — global body state */
 body.midi-learn-active .knob-group,
-body.midi-learn-active .pedal,
+body.midi-learn-active .pedal-row,
 body.midi-learn-active .gm-knob-group,
 body.midi-learn-active .monotron-knob-group,
 body.midi-learn-active .transport-controls .btn-primary,
@@ -865,12 +949,11 @@ body.midi-learn-active .transport-controls .btn-secondary:not(.btn-midi-reset) {
 }
 
 body.midi-learn-active .knob-group:hover,
-body.midi-learn-active .pedal:hover,
+body.midi-learn-active .pedal-row:hover,
 body.midi-learn-active .gm-knob-group:hover,
 body.midi-learn-active .monotron-knob-group:hover {
-    outline: 2px solid rgba(59, 130, 246, 0.5);
-    outline-offset: 4px;
-    border-radius: 4px;
+    outline: 2px dashed var(--accent-color);
+    outline-offset: 2px;
 }
 
 /* Active listening state on a specific parameter */
@@ -1239,4 +1322,275 @@ body.midi-learn-active .monotron-knob-group:hover {
     outline: 2px solid #e9ff6a !important;
     outline-offset: -2px;
     background: #2e3020 !important;
+}
+
+/* ─── Pattern Sequence Editor ─────────────────────────────────────────────── */
+
+/* WHAT: Outer wrapper for the collapsible sequence panel, sitting below the step editor.
+   WHY:  A top border clearly separates it from the step controls above. */
+.sampler-seq-editor {
+    border-top: 1px solid #2e2e35;
+    margin-top: 6px;
+}
+
+/* WHAT: Header row — label left, expand/collapse button right.
+   WHY:  Keeping it compact means the panel only takes up vertical space when open. */
+.sampler-seq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    font: 0.6rem 'Share Tech Mono', monospace;
+    letter-spacing: 0.08em;
+    color: #888;
+    text-transform: uppercase;
+}
+
+/* WHAT: Expand/collapse toggle button — styled like the rest of the sampler's secondary buttons.
+   WHY:  Consistent visual language means new controls feel native, not bolted on. */
+.sampler-seq-toggle-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #aaa;
+    font: 0.58rem 'Share Tech Mono', monospace;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+.sampler-seq-toggle-btn:hover {
+    color: #e9ff6a;
+    border-color: #e9ff6a;
+}
+
+/* WHAT: Collapsible body — padding provides breathing room for the textarea and pills.
+   WHY:  Without padding the textarea would butt right up against the header rule. */
+.sampler-seq-body {
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* WHAT: Monospace textarea for JSON entry, styled to match the sampler's LCD aesthetic.
+   WHY:  Dark background + accent border on focus signals "this is a code input"
+         and keeps the design consistent with the dark-panel sampler theme. */
+.sampler-seq-input {
+    width: 100%;
+    min-height: 56px;
+    max-height: 120px;
+    resize: vertical;
+    background: #0a0c0c;
+    color: #e9ff6a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    font: 0.62rem 'Share Tech Mono', monospace;
+    padding: 6px 8px;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sampler-seq-input:focus {
+    border-color: #e9ff6a;
+    box-shadow: 0 0 0 2px rgba(233, 255, 106, 0.12);
+}
+.sampler-seq-input::placeholder {
+    color: #3a3a3a;
+}
+
+/* WHAT: Inline parse error message, shown in amber/red below the textarea.
+   WHY:  Keeping the error right next to the textarea means the user's eye doesn't
+         have to travel far to understand what went wrong. */
+.sampler-seq-error {
+    font: 0.58rem 'Share Tech Mono', monospace;
+    color: #ff6b6b;
+    min-height: 14px;
+    letter-spacing: 0.04em;
+}
+
+/* WHAT: Horizontal scrolling pill list for the parsed sequence entries.
+   WHY:  A horizontal layout maps naturally to a timeline — left-to-right playback order. */
+.sampler-seq-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 26px;
+    align-items: center;
+}
+
+/* WHAT: Individual pattern pill — compact, monospace, dark with subtle border.
+   WHY:  Each pill represents one playback step in the sequence chain.
+         The compact size means a long sequence fits without horizontal scrolling. */
+.seq-entry {
+    background: #1a1c1e;
+    border: 1px solid #3a3a42;
+    color: #aaa;
+    font: 0.6rem 'Share Tech Mono', monospace;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s, box-shadow 0.12s;
+    white-space: nowrap;
+}
+.seq-entry:hover {
+    background: #252830;
+    color: #ccc;
+    border-color: #555;
+}
+
+/* WHAT: Active-pill glow — vivid yellow-green matching the accent used throughout the sampler.
+   WHY:  The active pill is the primary real-time playback indicator; it must be
+         impossible to miss at a glance, even in a peripheral view. */
+.seq-entry.active {
+    background: #2e3020;
+    border-color: #e9ff6a;
+    color: #e9ff6a;
+    box-shadow: 0 0 8px rgba(233, 255, 106, 0.45);
+    font-weight: 700;
+}
+
+/* WHAT: Empty-state hint text shown when the sequence is empty.
+   WHY:  A blank pill list gives no affordance — the hint tells first-time users
+         exactly what they need to do next. */
+.seq-entry-hint {
+    font: 0.58rem 'Share Tech Mono', monospace;
+    color: #3a3a45;
+    letter-spacing: 0.04em;
+    font-style: italic;
+}
+
+/* WHAT: Control row containing SEQ PLAY and SEQ STOP buttons side-by-side.
+   WHY:  A gap between them prevents accidental mis-clicks during live performance. */
+.sampler-seq-controls {
+    display: flex;
+    gap: 6px;
+}
+
+/* WHAT: Base style shared by both sequence transport buttons.
+   WHY:  Consistent sizing and font with the rest of the sampler toolbar. */
+.sampler-seq-btn {
+    flex: 1;
+    padding: 5px 0;
+    border-radius: 4px;
+    font: 0.62rem 'Share Tech Mono', monospace;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+/* --- Sampler Sequence Editor --- */
+.sampler-seq-editor {
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.sampler-seq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #171915;
+    font-weight: bold;
+}
+
+.sampler-seq-toggle-btn {
+    background: transparent;
+    border: none;
+    color: #171915;
+    font-size: 0.7rem;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+.sampler-seq-toggle-btn:hover {
+    color: var(--ko);
+}
+
+.sampler-seq-body {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sampler-seq-input {
+    width: 100%;
+    height: 60px;
+    background: #efede4;
+    border: 2px inset #85877e;
+    color: #171915;
+    font-family: monospace;
+    font-size: 0.75rem;
+    padding: 0.4rem;
+    resize: vertical;
+}
+
+.sampler-seq-error {
+    color: var(--ko);
+    font-size: 0.7rem;
+    min-height: 1rem;
+    font-weight: bold;
+}
+
+.sampler-seq-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sampler-seq-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-top: 0.2rem;
+}
+
+.sampler-seq-pill {
+    background: #171915;
+    color: #e9ff6a;
+    padding: 0.1rem 0.3rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: bold;
+}
+.sampler-seq-pill.playing {
+    background: var(--ko);
+    color: white;
+}
+
+/* WHAT: SEQ PLAY — green accent, mirrors the visual language of a "play" action.
+   WHY:  Green = play is universally understood; distinguishes it clearly from the red record button. */
+.sampler-seq-play-btn {
+    background: #1a2e1a;
+    border-color: #2e6e2e;
+    color: #6eff6e;
+}
+.sampler-seq-play-btn:not(:disabled):hover {
+    background: #1f3a1f;
+    border-color: #6eff6e;
+    box-shadow: 0 0 8px rgba(110, 255, 110, 0.3);
+}
+.sampler-seq-play-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* WHAT: SEQ STOP — neutral dark, less visually dominant than play.
+   WHY:  Stop is a secondary action; giving it less visual weight prevents it
+         from competing with the play button for the user's attention. */
+.sampler-seq-stop-btn {
+    background: #1e1e22;
+    border-color: #444;
+    color: #aaa;
+}
+.sampler-seq-stop-btn:hover {
+    background: #252528;
+    border-color: #888;
+    color: #ddd;
 }

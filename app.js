@@ -45,6 +45,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
+    // PEDAL BOARD WIRING
+    // ==========================================
+    // WHAT: Wires up the shared PedalBoard UI to the global PedalBoard engine.
+    // WHY:  Since the pedal board affects multiple modules, it's owned by the main app,
+    //       not individual instruments like the TB-303.
+    function bindPedalBoard() {
+        if (!window.PedalBoard) return;
+        
+        // Master enable toggles
+        document.querySelectorAll('.pedal-enable').forEach(checkbox_element => {
+            checkbox_element.addEventListener('change', (event_object) => {
+                const pedal_id_string = event_object.target.closest('.pedal-row').dataset.pedal;
+                window.PedalBoard.setPedalEnabled(pedal_id_string, event_object.target.checked);
+            });
+        });
+
+        // Module routing toggles
+        document.querySelectorAll('.pedal-route').forEach(checkbox_element => {
+            checkbox_element.addEventListener('change', (event_object) => {
+                const pedal_id_string = event_object.target.closest('.pedal-row').dataset.pedal;
+                const module_id_string = event_object.target.dataset.module;
+                window.PedalBoard.setPedalRoute(pedal_id_string, module_id_string, event_object.target.checked);
+            });
+        });
+
+        // Parameter sliders
+        document.querySelectorAll('.pedal-param-slider').forEach(slider_element => {
+            slider_element.addEventListener('input', (event_object) => {
+                const pedal_id_string = event_object.target.closest('.pedal-row').dataset.pedal;
+                const param_name_string = event_object.target.dataset.param;
+                const value_float = parseFloat(event_object.target.value);
+                window.PedalBoard.setPedalParam(pedal_id_string, param_name_string, value_float);
+            });
+        });
+
+        // Register MIDI for pedals (only the master enable toggles are exposed via MIDI for now)
+        if (window.MIDIRegistry) {
+            document.querySelectorAll('.pedal-enable').forEach(checkbox_element => {
+                const pedal_id_string = checkbox_element.closest('.pedal-row').dataset.pedal;
+                window.MIDIRegistry.register(`pedal-${pedal_id_string}`, checkbox_element);
+            });
+        }
+    }
+    bindPedalBoard();
+
+    // ==========================================
+
     // MASTER AUDIO RECORDER & WAV ENCODER
     // ==========================================
     let master_recorder_node = null;
