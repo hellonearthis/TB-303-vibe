@@ -82,12 +82,17 @@ Use the top panel knobs to sculpt the synth patch:
 - **Accent**: Controls how much effect the Accent lane has. If it's at zero, accented steps sound just like normal steps. Turn it to at least 70% or higher to hear the pattern come alive.
 
 ### Multi-Module Pedal Board (Effects)
-To the left of the sequencer grid, you'll find a versatile Pedal Board boasting 8 classic stompbox effects categorized into Gain, Time, and Modulation. What makes this pedal board special is its **Multi-Module Routing**:
-- **Gain**: Overdrive (amp saturation), Distortion (hard clipping), Fuzz (bit-crusher destruction).
-- **Time**: Delay (cascading repeats) and Reverb (spatial reflections).
-- **Modulation**: Chorus (thickening detune), Phaser (liquid sweeping), Tremolo (rhythmic volume).
+To the left of the sequencer grid, you'll find a versatile Pedal Board boasting 8 classic stompbox effects categorized into Gain, Time, and Modulation. What makes this pedal board special is its **Multi-Module Routing Matrix**:
+- **Gain**: Overdrive (subtle warmth & grit), Distortion (hard clipping saturation), Fuzz (massive square-wave bitcrusher).
+- **Time**: Delay (tape delay with pitch modulation & filter) and Reverb (room decay with tone control).
+- **Modulation**: Chorus (thickening detune), Phaser (sweeping notch filter LFO), Tremolo (rhythmic volume LFO).
 
-You can enable each pedal independently and use the routing checkboxes to send the **303**, **Moog**, **Monotron**, or **Sampler** through them. The system creates a dedicated serial effect chain for each instrument, preventing cross-bleed while letting every module benefit from the full pedal catalogue.
+#### Routing & Operation
+Each pedal operates as a dedicated DSP chain for every instrument:
+1. **Master Enable**: Toggle the main checkbox next to the pedal name to power the stompbox on or off globally.
+2. **Module Routing**: Use the small routing checkboxes (**303**, **Moog**, **Mono**, **Samp**) to route specific instruments through the pedal.
+3. **True Dry Bypass**: When a pedal is bypassed or unrouted for a module, the signal path achieves 100% dry bypass with zero signal bleed or coloration.
+4. **Parameter Controls**: Adjust Gain, Tone, Level, Rate, Depth, Feedback, Time, and Mix sliders to shape the effect.
 
 ### Pattern Memory (1-9)
 The emulator features 9 slots for pattern memory. Slots 1 through 4 are pre-loaded with classic, intricately programmed acid house grooves (complete with optimized Slides and Accents) to get you started!

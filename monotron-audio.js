@@ -191,13 +191,6 @@ class MonotronAudio {
     setVolume(normalized_parameter_value) {
         this.masterVolume.gain.setTargetAtTime(normalized_parameter_value, this.ctx.currentTime, 0.05);
     }
-    
-    // WHAT: Sets the input volume for the external audio signal routed into the Monotron's filter.
-    // WHY: Allows the user to push external signals (like the 303) harder into the MS-20 filter for saturation.
-    setAuxVolume(normalized_parameter_value) {
-        this.extInput.gain.setTargetAtTime(normalized_parameter_value * 2, this.ctx.currentTime, 0.05);
-    }
-    
     // WHAT: Sets the speed (frequency) of the Low Frequency Oscillator.
     // WHY: Controls how fast the pitch or filter wobbles, mapping a 0-1 knob to a 0.1Hz to 30Hz range.
     setLFORate(normalized_parameter_value) {
@@ -271,8 +264,7 @@ window.addEventListener('midiCCChange', (midi_control_change_event_object) => {
         'monotron-peak':    'setPeak',
         'monotron-xmod':    'setXMod',
         'monotron-volume':  'setVolume',
-        'monotron-vco2':    'setVCO2Pitch',
-        'monotron-auxvol':  'setAuxVolume',
+        'monotron-vco2':    'setVCO2Pitch'
     };
     if (monotron_parameter_routes_object[parameter]) {
         monotronAudio[monotron_parameter_routes_object[parameter]](scaledValue);

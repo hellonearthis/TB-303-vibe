@@ -31,8 +31,6 @@ class MonotronInstrument extends window.Instrument {
     const cutoff_knob_element = document.getElementById('monotron-cutoff');
     const peak_knob_element = document.getElementById('monotron-peak');
     const volume_knob_element = document.getElementById('monotron-volume');
-    const aux_switch_element = document.getElementById('monotron-aux');
-    const aux_vol_knob_element = document.getElementById('monotron-aux-vol');
 
     // 1.5 Render Keyboard pattern
     const keyboard_container_element = document.createElement('div');
@@ -245,28 +243,7 @@ class MonotronInstrument extends window.Instrument {
         monotronAudio.setVolume(parseFloat(event_object.target.value));
     });
 
-    aux_vol_knob_element.addEventListener('input', (event_object) => {
-        monotronAudio.setAuxVolume(parseFloat(event_object.target.value));
-    });
 
-    // WHAT: Dynamically re-routes the TB-303 audio output directly into the Monotron's analog MS-20 filter.
-    // WHY: Emulates plugging a real hardware patch cable from the 303's output jack into the Monotron's "Aux In" port.
-    aux_switch_element.addEventListener('change', (event_object) => {
-        const monotron_section_element = document.getElementById('monotron-section');
-        if (window.AudioEngine) {
-            if (event_object.target.checked) {
-                // Route 303 to Monotron VCF
-                window.Bus.routeAudio(window.AudioEngine.volume, 'monotron_ext_in', true);
-                monotron_section_element.classList.add('aux-routed');
-            } else {
-                // Route 303 back to Destination
-                window.Bus.routeAudio(window.AudioEngine.volume, 'monotron_ext_in', false);
-                monotron_section_element.classList.remove('aux-routed');
-            }
-        }
-    });
-    // Init state
-    aux_switch_element.dispatchEvent(new Event('change'));
 
     // Initialize values
     monotronAudio.setVCO1Pitch(parseFloat(vco1_pitch_knob_element.value));
@@ -283,7 +260,6 @@ class MonotronInstrument extends window.Instrument {
     monotronAudio.setCutoff(parseFloat(cutoff_knob_element.value));
     monotronAudio.setPeak(parseFloat(peak_knob_element.value));
     monotronAudio.setVolume(parseFloat(volume_knob_element.value));
-    monotronAudio.setAuxVolume(parseFloat(aux_vol_knob_element.value));
 
     // --- MIDI CC → Monotron Slider Sync ---
     const monotron_input_mapping_object = {
@@ -299,7 +275,6 @@ class MonotronInstrument extends window.Instrument {
         'monotron-xmod':    xmod_knob_element,
         'monotron-volume':  volume_knob_element,
         'monotron-vco2':    vco2_pitch_knob_element,
-        'monotron-auxvol':  aux_vol_knob_element,
     };
 
     // WHAT: Intercepts custom MIDI control change events from the midi.js subsystem and updates the UI sliders to match.
@@ -326,7 +301,6 @@ class MonotronInstrument extends window.Instrument {
             { param: 'monotron-xmod',    element: xmod_knob_element?.closest('.monotron-knob-group') },
             { param: 'monotron-volume',  element: volume_knob_element?.closest('.monotron-knob-group') },
             { param: 'monotron-vco2',    element: vco2_pitch_knob_element?.closest('.monotron-knob-group') },
-            { param: 'monotron-auxvol',  element: aux_vol_knob_element?.closest('.monotron-knob-group') },
         ];
 
         monotron_learnable_parameters_array.forEach(({ param, element }) => {

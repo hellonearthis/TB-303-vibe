@@ -22,6 +22,67 @@
  *     enable is ON and the module is ticked in that pedal
  */
 
+// WHAT: Custom composite effect for Drive (Overdrive, Distortion, Fuzz).
+// WHY: Native Tone.Distortion lacks a filter (tone) and volume (level) control.
+class CustomDrive {
+    constructor(options = {}) {
+        this.input = new Tone.Gain();
+        this.output = new Tone.Gain();
+        
+        // Use a standard Tone.Volume for the final mix to allow the Level control to affect output loudness
+        // when engaged, whilst preserving dry signal loudness when bypassed.
+        this.wet = new Tone.Signal(options.mix || 0.5);
+
+        // WHAT: Set initial fade value of CrossFade to 0.
+        // WHY:  Tone.CrossFade defaults to 0.5. Connecting this.wet (Tone.Signal) to crossFade.fade
+        //       sums the signal with the initial value (0.5 + wet_value), which caused bypassed (wet=0)
+        //       pedals to remain 50% wet. Setting initial fade to 0 ensures 100% dry bypass when wet=0.
+        this.crossFade = new Tone.CrossFade(0);
+        this.wet.connect(this.crossFade.fade);
+
+        // Drive stage (Distortion or Bitcrusher depending on type)
+        if (options.type === 'fuzz') {
+            this.drive = new Tone.BitCrusher(options.gain ? (8 - (options.gain * 7)) : 3); // Map 0-1 to 8-1 bits
+        } else {
+            this.drive = new Tone.Distortion(options.gain || 0.5, '2x');
+        }
+
+        // Tone stage (Lowpass filter)
+        this.filter = new Tone.Filter(options.tone || 2000, "lowpass");
+        
+        // Level stage
+        this.level = new Tone.Volume(options.level || 0);
+
+        this.input.connect(this.crossFade.a);
+        this.input.chain(this.drive, this.filter, this.level, this.crossFade.b);
+        this.crossFade.connect(this.output);
+        
+        this.type = options.type;
+        
+        if (this.type === 'fuzz') {
+            this.gainParam = this.drive.bits; // Note: for BitCrusher, 'bits' is not a signal, it's just a number
+        } else {
+            this.gainParam = this.drive.distortion; // Note: for Distortion, distortion is not a signal
+        }
+        
+        this.toneParam = this.filter.frequency;
+        this.levelParam = this.level.volume;
+    }
+
+    set gain(value) {
+        if (this.type === 'fuzz') {
+            this.drive.bits = Math.max(1, 8 - (value * 7)); // higher gain = fewer bits (harsher)
+        } else {
+            this.drive.distortion = value;
+        }
+    }
+
+    connect(destination) {
+        this.output.connect(destination);
+        return this;
+    }
+}
+
 // WHAT: Custom composite effect for Delay.
 // WHY: Native Tone.FeedbackDelay lacks filter (tone) in the feedback loop and modulation on the trails, which were specifically requested.
 class CustomTapeDelay {
@@ -30,7 +91,11 @@ class CustomTapeDelay {
         this.output = new Tone.Gain();
         this.wet = new Tone.Signal(options.mix || 0.5);
 
-        this.crossFade = new Tone.CrossFade();
+        // WHAT: Set initial fade value of CrossFade to 0.
+        // WHY:  Tone.CrossFade defaults to 0.5. Connecting this.wet (Tone.Signal) to crossFade.fade
+        //       sums the signal with the initial value (0.5 + wet_value), which caused bypassed (wet=0)
+        //       pedals to remain 50% wet. Setting initial fade to 0 ensures 100% dry bypass when wet=0.
+        this.crossFade = new Tone.CrossFade(0);
         this.wet.connect(this.crossFade.fade);
 
         this.delay = new Tone.Delay(options.time || 0.4, 2);
@@ -64,7 +129,11 @@ class CustomReverb {
         this.output = new Tone.Gain();
         this.wet = new Tone.Signal(options.mix || 0.5);
 
-        this.crossFade = new Tone.CrossFade();
+        // WHAT: Set initial fade value of CrossFade to 0.
+        // WHY:  Tone.CrossFade defaults to 0.5. Connecting this.wet (Tone.Signal) to crossFade.fade
+        //       sums the signal with the initial value (0.5 + wet_value), which caused bypassed (wet=0)
+        //       pedals to remain 50% wet. Setting initial fade to 0 ensures 100% dry bypass when wet=0.
+        this.crossFade = new Tone.CrossFade(0);
         this.wet.connect(this.crossFade.fade);
 
         this.reverb = new Tone.Reverb({
@@ -98,11 +167,11 @@ class PedalBoard {
 
         // Track global state for each pedal
         this.pedal_state_object = {
-            'overdrive':  { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
-            'distortion': { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
-            'fuzz':       { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
+            'overdrive':  { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { gain: 0.4, tone: 3000, level: 0, mix: 1 } },
+            'distortion': { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { gain: 0.8, tone: 2000, level: 0, mix: 1 } },
+            'fuzz':       { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { gain: 0.9, tone: 1000, level: 0, mix: 1 } },
             'chorus':     { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
-            'phaser':     { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
+            'phaser':     { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { rate: 0.5, octaves: 3, baseFrequency: 1000 } },
             'tremolo':    { enabled_boolean: false, routed_modules_set: new Set(['303']), params: {} },
             'delay':      { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { time: 0.4, feedback: 0.4, mix: 0.5, mod: 0.5, tone: 2000 } },
             'reverb':     { enabled_boolean: false, routed_modules_set: new Set(['303']), params: { decay: 3, mix: 0.6, preDelay: 0.05, tone: 3000 } },
@@ -118,7 +187,7 @@ class PedalBoard {
                 category: 'gain',
                 // WHAT: Simulates an amp working a bit too hard.
                 // WHY:  Lower distortion value keeps things gritty but polite.
-                createEffect: () => new Tone.Distortion({ distortion: 0.4, oversample: '2x' }),
+                createEffect: () => new CustomDrive({ type: 'overdrive', gain: 0.4, tone: 3000, level: 0, mix: 1 }),
                 wet_level_float: 1.0
             },
             {
@@ -127,7 +196,7 @@ class PedalBoard {
                 category: 'gain',
                 // WHAT: Aggressive hard-clipping distortion.
                 // WHY:  Higher distortion value gives the "tin shed" sound described in the spec.
-                createEffect: () => new Tone.Distortion({ distortion: 0.8, oversample: '2x' }),
+                createEffect: () => new CustomDrive({ type: 'distortion', gain: 0.8, tone: 2000, level: 0, mix: 1 }),
                 wet_level_float: 1.0
             },
             {
@@ -136,7 +205,7 @@ class PedalBoard {
                 category: 'gain',
                 // WHAT: Turns the audio into a massive, squared-off wall of noise.
                 // WHY:  BitCrusher perfectly emulates the "malfunctioning wet woolen blanket" vibe.
-                createEffect: () => new Tone.BitCrusher({ bits: 3 }),
+                createEffect: () => new CustomDrive({ type: 'fuzz', gain: 0.9, tone: 1000, level: 0, mix: 1 }),
                 wet_level_float: 1.0
             },
             {
@@ -154,7 +223,7 @@ class PedalBoard {
                 category: 'modulation',
                 // WHAT: Sweeps notch filters through the frequency spectrum.
                 // WHY:  Creates the classic swooshing, sci-fi sound.
-                createEffect: () => new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 1000 }),
+                createEffect: () => new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 1000 }).start(),
                 wet_level_float: 1.0
             },
             {
@@ -318,7 +387,12 @@ class PedalBoard {
             const effect = module_chain_object.effects_by_id_object[pedal_id_string];
             if (!effect) return;
 
-            if (pedal_id_string === 'delay') {
+            if (pedal_id_string === 'overdrive' || pedal_id_string === 'distortion' || pedal_id_string === 'fuzz') {
+                if (param_name === 'gain') effect.gain = value; // Hits the setter
+                if (param_name === 'tone') effect.toneParam.value = value;
+                if (param_name === 'level') effect.levelParam.value = value;
+                if (param_name === 'mix') effect.wet.value = value * (pedal_state.enabled_boolean && pedal_state.routed_modules_set.has(module_id_string) ? 1 : 0);
+            } else if (pedal_id_string === 'delay') {
                 if (param_name === 'time') effect.delayTime.value = value;
                 if (param_name === 'feedback') effect.feedbackParam.value = value;
                 if (param_name === 'mix') effect.wet.value = value * (pedal_state.enabled_boolean && pedal_state.routed_modules_set.has(module_id_string) ? 1 : 0);
@@ -332,6 +406,10 @@ class PedalBoard {
             } else if (pedal_id_string === 'chorus') {
                 if (param_name === 'rate') effect.frequency.value = value;
                 if (param_name === 'depth') effect.depth = value;
+            } else if (pedal_id_string === 'phaser') {
+                if (param_name === 'rate') effect.frequency.value = value;
+                if (param_name === 'octaves') effect.octaves = value;
+                if (param_name === 'baseFrequency') effect.baseFrequency = value;
             } else if (pedal_id_string === 'tremolo') {
                 if (param_name === 'frequency') effect.frequency.value = value;
                 if (param_name === 'depth') effect.depth.value = value;

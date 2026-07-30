@@ -69,20 +69,13 @@ class MoogGrandmotherEngine {
         this.filter.connect(this.envelope);
 
         // External Input (Aux in)
-        this.extInput = Tone.context.createGain();
-        this.extInput.gain.value = 1.0;
+        this.extInput = new Tone.Gain(1.0);
         this.extInput.connect(this.filter);
         
         // WHAT: Add an inaudible DC offset to the VCF to prevent denormal numbers.
         // WHY:  When external signals (like the 303) decay to 0, cascaded IIR filters process
         //       denormals, causing extreme CPU spikes that freeze the browser on Windows.
-        this.antiDenormal = Tone.context.createBufferSource();
-        const buffer = Tone.context.createBuffer(1, 2, Tone.context.sampleRate);
-        buffer.getChannelData(0)[0] = 1e-8;
-        buffer.getChannelData(0)[1] = 1e-8;
-        this.antiDenormal.buffer = buffer;
-        this.antiDenormal.loop = true;
-        this.antiDenormal.start();
+        this.antiDenormal = new Tone.Signal(1e-8);
         this.antiDenormal.connect(this.filter);
 
         this.volume = new Tone.Volume(-12);

@@ -108,33 +108,57 @@
                         <div class="pedal-category">
                             <span class="pedal-category-label">GAIN</span>
                             <div class="pedal-row" data-pedal="overdrive">
-                                <input type="checkbox" id="pedal-overdrive" class="pedal-enable">
-                                <label for="pedal-overdrive" class="pedal-name">Overdrive</label>
-                                <div class="pedal-routes">
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-overdrive" class="pedal-enable">
+                                    <label for="pedal-overdrive" class="pedal-name">Overdrive</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Gain</label><input type="range" class="pedal-param-slider" data-param="gain" min="0" max="1" step="0.01" value="0.4"></div>
+                                    <div class="pedal-param"><label>Tone</label><input type="range" class="pedal-param-slider" data-param="tone" min="200" max="10000" step="10" value="3000"></div>
+                                    <div class="pedal-param"><label>Level</label><input type="range" class="pedal-param-slider" data-param="level" min="-24" max="12" step="0.1" value="0"></div>
+                                    <div class="pedal-param"><label>Mix</label><input type="range" class="pedal-param-slider" data-param="mix" min="0" max="1" step="0.01" value="1"></div>
                                 </div>
                             </div>
                             <div class="pedal-row" data-pedal="distortion">
-                                <input type="checkbox" id="pedal-distortion" class="pedal-enable">
-                                <label for="pedal-distortion" class="pedal-name">Distortion</label>
-                                <div class="pedal-routes">
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-distortion" class="pedal-enable">
+                                    <label for="pedal-distortion" class="pedal-name">Distortion</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Gain</label><input type="range" class="pedal-param-slider" data-param="gain" min="0" max="1" step="0.01" value="0.8"></div>
+                                    <div class="pedal-param"><label>Tone</label><input type="range" class="pedal-param-slider" data-param="tone" min="200" max="10000" step="10" value="2000"></div>
+                                    <div class="pedal-param"><label>Level</label><input type="range" class="pedal-param-slider" data-param="level" min="-24" max="12" step="0.1" value="0"></div>
+                                    <div class="pedal-param"><label>Mix</label><input type="range" class="pedal-param-slider" data-param="mix" min="0" max="1" step="0.01" value="1"></div>
                                 </div>
                             </div>
                             <div class="pedal-row" data-pedal="fuzz">
-                                <input type="checkbox" id="pedal-fuzz" class="pedal-enable">
-                                <label for="pedal-fuzz" class="pedal-name">Fuzz</label>
-                                <div class="pedal-routes">
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-fuzz" class="pedal-enable">
+                                    <label for="pedal-fuzz" class="pedal-name">Fuzz</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Gain</label><input type="range" class="pedal-param-slider" data-param="gain" min="0" max="1" step="0.01" value="0.9"></div>
+                                    <div class="pedal-param"><label>Tone</label><input type="range" class="pedal-param-slider" data-param="tone" min="200" max="10000" step="10" value="1000"></div>
+                                    <div class="pedal-param"><label>Level</label><input type="range" class="pedal-param-slider" data-param="level" min="-24" max="12" step="0.1" value="0"></div>
+                                    <div class="pedal-param"><label>Mix</label><input type="range" class="pedal-param-slider" data-param="mix" min="0" max="1" step="0.01" value="1"></div>
                                 </div>
                             </div>
                         </div>
@@ -201,13 +225,20 @@
                                 </div>
                             </div>
                             <div class="pedal-row" data-pedal="phaser">
-                                <input type="checkbox" id="pedal-phaser" class="pedal-enable">
-                                <label for="pedal-phaser" class="pedal-name">Phaser</label>
-                                <div class="pedal-routes">
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
-                                    <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                <div class="pedal-main-controls">
+                                    <input type="checkbox" id="pedal-phaser" class="pedal-enable">
+                                    <label for="pedal-phaser" class="pedal-name">Phaser</label>
+                                    <div class="pedal-routes">
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="303" checked>303</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="moog">Moog</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="monotron">Mono</label>
+                                        <label class="pedal-route-label"><input type="checkbox" class="pedal-route" data-module="sampler">Samp</label>
+                                    </div>
+                                </div>
+                                <div class="pedal-params">
+                                    <div class="pedal-param"><label>Rate</label><input type="range" class="pedal-param-slider" data-param="rate" min="0.1" max="10" step="0.1" value="0.5"></div>
+                                    <div class="pedal-param"><label>Octaves</label><input type="range" class="pedal-param-slider" data-param="octaves" min="1" max="8" step="0.1" value="3"></div>
+                                    <div class="pedal-param"><label>Base</label><input type="range" class="pedal-param-slider" data-param="baseFrequency" min="100" max="2000" step="10" value="1000"></div>
                                 </div>
                             </div>
                             <div class="pedal-row" data-pedal="tremolo">
@@ -244,6 +275,57 @@
                     <div class="grid-container" id="grid-container">
                         <!-- Grid will be generated by JS -->
                     </div>
+
+                    <!-- Korg Monotron Synth -->
+                    <section class="monotron-section" id="monotron-section">
+                        <div class="monotron-header">
+                            <div><span class="monotron-eyebrow">ANALOGUE RIBBON SYNTHESIZER</span><h2>KORG <strong>monotron</strong></h2></div>
+                            <div class="monotron-header-controls">
+                                <div class="monotron-scale-selector">
+                                    <label>Model:</label>
+                                    <select id="monotron-model">
+                                        <option value="original">Original</option>
+                                        <option value="duo" selected>Duo</option>
+                                        <option value="delay">Delay</option>
+                                    </select>
+                                </div>
+                                <div class="monotron-scale-selector" id="monotron-scale-container">
+                                    <label>Scale (Duo):</label>
+                                    <select id="monotron-scale">
+                                        <option value="off">Off (Continuous)</option>
+                                        <option value="chromatic" selected>Chromatic</option>
+                                        <option value="major">Major</option>
+                                        <option value="minor">Minor</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="monotron-panel">
+                            <div class="monotron-knobs">
+                                <div class="monotron-knob-group original-only duo-only osc-group"><label for="monotron-vco1-pitch">VCO<span class="duo-label">1</span> Pitch</label><input type="range" id="monotron-vco1-pitch" min="0" max="1" step="0.01" value="0.5"></div>
+                                <div class="monotron-knob-group mod-group original-only" style="display:none"><label for="monotron-mod-target">LFO Target</label><select id="monotron-mod-target"><option value="standby">Standby</option><option value="pitch">Pitch</option><option value="cutoff">Cutoff</option></select></div>
+                                <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-rate">LFO Rate</label><input type="range" id="monotron-lfo-rate" min="0" max="1" step="0.01" value="0.5"></div>
+                                <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-int">LFO Int</label><input type="range" id="monotron-lfo-int" min="0" max="1" step="0.01" value="0"></div>
+                                <div class="monotron-knob-group duo-only osc-group"><label for="monotron-vco2-pitch">VCO2 Pitch</label><input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5"></div>
+                                <div class="monotron-knob-group duo-only osc-group"><label for="monotron-xmod">X-MOD Int</label><input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0"></div>
+                                <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-wave">LFO Wave</label><select id="monotron-delay-lfo-wave"><option value="triangle">△ Triangle</option><option value="square">□ Square</option></select></div>
+                                <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-rate">LFO Rate</label><input type="range" id="monotron-delay-lfo-rate" min="0" max="1" step="0.01" value="0.35"></div>
+                                <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-int">LFO Int</label><input type="range" id="monotron-delay-lfo-int" min="0" max="1" step="0.01" value="0.2"></div>
+                                <div class="monotron-knob-group vcf-group"><label for="monotron-cutoff">VCF Cutoff</label><input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8"></div>
+                                <div class="monotron-knob-group vcf-group original-only duo-only"><label for="monotron-peak">VCF Peak</label><input type="range" id="monotron-peak" min="0" max="1" step="0.01" value="0.2"></div>
+                                <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-time">Delay Time</label><input type="range" id="monotron-delay-time" min="0" max="1" step="0.01" value="0.35"></div>
+                                <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-feedback">Feedback</label><input type="range" id="monotron-delay-feedback" min="0" max="0.92" step="0.01" value="0.45"></div>
+                                <div class="monotron-utility"><label for="monotron-volume">Output <input type="range" id="monotron-volume" min="0" max="1" step="0.01" value="0.7"></label></div>
+                            </div>
+                            
+                            <div class="monotron-ribbon-container">
+                                <div id="monotron-ribbon" class="monotron-ribbon">
+                                    <!-- Ribbon is interactive via pointer events -->
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </section>
@@ -475,76 +557,27 @@
             </div>
         </section>
 
-    <!-- Korg Monotron Synth -->
-        <section class="monotron-section" id="monotron-section">
-            <div class="monotron-header">
-                <div><span class="monotron-eyebrow">ANALOGUE RIBBON SYNTHESIZER</span><h2>KORG <strong>monotron</strong></h2></div>
-                <div class="monotron-header-controls">
-                    <div class="monotron-scale-selector">
-                        <label>Model:</label>
-                        <select id="monotron-model">
-                            <option value="original">Original</option>
-                            <option value="duo" selected>Duo</option>
-                            <option value="delay">Delay</option>
-                        </select>
-                    </div>
-                    <div class="monotron-scale-selector" id="monotron-scale-container">
-                        <label>Scale (Duo):</label>
-                        <select id="monotron-scale">
-                            <option value="off">Off (Continuous)</option>
-                            <option value="chromatic" selected>Chromatic</option>
-                            <option value="major">Major</option>
-                            <option value="minor">Minor</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="monotron-panel">
-                <div class="monotron-knobs">
-                    <div class="monotron-knob-group original-only duo-only osc-group"><label for="monotron-vco1-pitch">VCO<span class="duo-label">1</span> Pitch</label><input type="range" id="monotron-vco1-pitch" min="0" max="1" step="0.01" value="0.5"></div>
-                    <div class="monotron-knob-group mod-group original-only" style="display:none"><label for="monotron-mod-target">LFO Target</label><select id="monotron-mod-target"><option value="standby">Standby</option><option value="pitch">Pitch</option><option value="cutoff">Cutoff</option></select></div>
-                    <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-rate">LFO Rate</label><input type="range" id="monotron-lfo-rate" min="0" max="1" step="0.01" value="0.5"></div>
-                    <div class="monotron-knob-group original-only lfo-group" style="display:none"><label for="monotron-lfo-int">LFO Int</label><input type="range" id="monotron-lfo-int" min="0" max="1" step="0.01" value="0"></div>
-                    <div class="monotron-knob-group duo-only osc-group"><label for="monotron-vco2-pitch">VCO2 Pitch</label><input type="range" id="monotron-vco2-pitch" min="0" max="1" step="0.01" value="0.5"></div>
-                    <div class="monotron-knob-group duo-only osc-group"><label for="monotron-xmod">X-MOD Int</label><input type="range" id="monotron-xmod" min="0" max="1" step="0.01" value="0"></div>
-                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-wave">LFO Wave</label><select id="monotron-delay-lfo-wave"><option value="triangle">△ Triangle</option><option value="square">□ Square</option></select></div>
-                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-rate">LFO Rate</label><input type="range" id="monotron-delay-lfo-rate" min="0" max="1" step="0.01" value="0.35"></div>
-                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-lfo-int">LFO Int</label><input type="range" id="monotron-delay-lfo-int" min="0" max="1" step="0.01" value="0.2"></div>
-                    <div class="monotron-knob-group vcf-group"><label for="monotron-cutoff">VCF Cutoff</label><input type="range" id="monotron-cutoff" min="0" max="1" step="0.01" value="0.8"></div>
-                    <div class="monotron-knob-group vcf-group original-only duo-only"><label for="monotron-peak">VCF Peak</label><input type="range" id="monotron-peak" min="0" max="1" step="0.01" value="0.2"></div>
-                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-time">Delay Time</label><input type="range" id="monotron-delay-time" min="0" max="1" step="0.01" value="0.35"></div>
-                    <div class="monotron-knob-group delay-only" style="display:none"><label for="monotron-delay-feedback">Feedback</label><input type="range" id="monotron-delay-feedback" min="0" max="0.92" step="0.01" value="0.45"></div>
-                    <div class="monotron-utility"><label for="monotron-volume">Output <input type="range" id="monotron-volume" min="0" max="1" step="0.01" value="0.7"></label><label for="monotron-aux"><input type="checkbox" id="monotron-aux"> 303 AUX</label><label for="monotron-aux-vol">Input <input type="range" id="monotron-aux-vol" min="0" max="1" step="0.01" value="0.5"></label></div>
-                </div>
-                
-                <div class="monotron-ribbon-container">
-                    <div id="monotron-ribbon" class="monotron-ribbon">
-                        <!-- Ribbon is interactive via pointer events -->
-                    </div>
-                </div>
-            </div>
-        </section>
+
 
     </div>
 
-    <script src="core/clock.js?v=2"></script>
-    <script src="core/pattern.js?v=2"></script>
-    <script src="core/rack.js?v=2"></script>
-    <script src="core/mode.js?v=2"></script>
-    <script src="core/bus.js?v=2"></script>
-    <script src="core/midi-registry.js?v=2"></script>
-    <script src="core/pedalboard.js?v=2"></script>
-    <script src="audio.js?v=2"></script>
-    <script src="grandmother-audio.js?v=2"></script>
-    <script src="monotron-audio.js?v=2"></script>
-    <script src="midi.js?v=2"></script>
-    <script src="sequencer.js?v=2"></script>
-    <script src="sampler.js?v=2"></script>
-    <script src="sampler-ui.js?v=2"></script>
-    <script src="app.js?v=2"></script>
-    <script src="tb303-ui.js?v=2"></script>
-    <script src="grandmother-ui.js?v=2"></script>
-    <script src="monotron-ui.js?v=2"></script>
+    <script src="core/clock.js?v=4"></script>
+    <script src="core/pattern.js?v=4"></script>
+    <script src="core/rack.js?v=4"></script>
+    <script src="core/mode.js?v=4"></script>
+    <script src="core/bus.js?v=4"></script>
+    <script src="core/midi-registry.js?v=4"></script>
+    <script src="core/pedalboard.js?v=4"></script>
+    <script src="audio.js?v=4"></script>
+    <script src="grandmother-audio.js?v=4"></script>
+    <script src="monotron-audio.js?v=4"></script>
+    <script src="midi.js?v=4"></script>
+    <script src="sequencer.js?v=4"></script>
+    <script src="sampler.js?v=4"></script>
+    <script src="sampler-ui.js?v=4"></script>
+    <script src="app.js?v=4"></script>
+    <script src="tb303-ui.js?v=4"></script>
+    <script src="grandmother-ui.js?v=4"></script>
+    <script src="monotron-ui.js?v=4"></script>
 </body>
 </html>
