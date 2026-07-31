@@ -221,9 +221,9 @@ class PedalBoard {
                 id: 'phaser',
                 label: 'Phaser',
                 category: 'modulation',
-                // WHAT: Sweeps notch filters through the frequency spectrum.
-                // WHY:  Creates the classic swooshing, sci-fi sound.
-                createEffect: () => new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 1000 }).start(),
+                // WHAT: Sweeps notch filters through the frequency spectrum using an internal LFO.
+                // WHY:  Creates the classic swooshing, sci-fi sound. Tone.Phaser manages its own LFO automatically without needing .start().
+                createEffect: () => new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 1000 }),
                 wet_level_float: 1.0
             },
             {
