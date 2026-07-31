@@ -1603,7 +1603,7 @@ body.midi-learn-active .monotron-knob-group:hover {
     color: #e9ff6a;
     font: 0.65rem 'Share Tech Mono', monospace;
     font-weight: bold;
-    padding: 1px 5px;
+    padding: 2px 7px;
     border-radius: 3px;
     cursor: pointer;
     transition: all 0.15s ease-in-out;
@@ -1612,66 +1612,216 @@ body.midi-learn-active .monotron-knob-group:hover {
     background: var(--ko, #ff5500);
     color: #ffffff;
     border-color: var(--ko, #ff5500);
-    box-shadow: 0 0 6px rgba(255, 85, 0, 0.4);
+    box-shadow: 0 0 8px rgba(255, 85, 0, 0.5);
 }
 
-/* WHAT: Collapsible usage examples and instructions panel.
-   WHY:  Displays structured preset chips and JSON rules in a visually distinct container. */
-.sampler-seq-help-panel {
-    background: rgba(15, 15, 18, 0.95);
-    border: 1px solid rgba(255, 85, 0, 0.35);
-    border-radius: 4px;
-    padding: 8px 10px;
-    margin: 6px 0;
-    font-family: 'Share Tech Mono', monospace;
+/* WHAT: Fixed screen-centered modal overlay for pattern sequence help and usage examples.
+   WHY:  Floats over the entire interface with a dark glassmorphic blur so the popup is completely obvious and unmissable. */
+.sampler-seq-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    animation: samplerSeqModalFadeIn 0.2s ease-out;
 }
-.sampler-seq-help-title {
-    font-size: 0.68rem;
-    font-weight: bold;
-    color: var(--ko, #ff5500);
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
+
+@keyframes samplerSeqModalFadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
 }
-.sampler-seq-help-desc {
-    font-size: 0.62rem;
-    color: #bbb;
-    margin-bottom: 8px;
-    line-height: 1.3;
-}
-.sampler-seq-examples-list {
+
+.sampler-seq-modal-card {
+    background: #141519;
+    border: 1px solid var(--ko, #ff5500);
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 85, 0, 0.25);
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', monospace;
+    color: #e0e0e0;
 }
-.sampler-seq-example-chip {
-    background: #1e1e23;
-    border: 1px solid #333;
+
+.sampler-seq-modal-header {
+    background: #1c1d22;
+    padding: 10px 14px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sampler-seq-modal-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ko, #ff5500);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sampler-seq-modal-icon {
+    background: var(--ko, #ff5500);
+    color: #ffffff;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: bold;
+}
+
+.sampler-seq-modal-close-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #aaa;
+    width: 24px;
+    height: 24px;
     border-radius: 4px;
-    color: #ddd;
-    padding: 5px 8px;
-    font: 0.62rem 'Share Tech Mono', monospace;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.sampler-seq-modal-close-btn:hover {
+    background: #ff3366;
+    border-color: #ff3366;
+    color: #fff;
+}
+
+.sampler-seq-modal-body {
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sampler-seq-modal-desc {
+    font-size: 0.72rem;
+    color: #bbb;
+    line-height: 1.4;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px 10px;
+    border-radius: 4px;
+    border-left: 3px solid var(--ko, #ff5500);
+    margin: 0;
+}
+
+.sampler-seq-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 580px) {
+    .sampler-seq-modal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.sampler-seq-example-card {
+    background: #1a1b20;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px;
     text-align: left;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
+    transition: all 0.15s ease-in-out;
 }
-.sampler-seq-example-chip:hover {
-    background: #282830;
+
+.sampler-seq-example-card:hover {
+    background: #23242c;
     border-color: var(--ko, #ff5500);
+    box-shadow: 0 0 10px rgba(255, 85, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.sampler-seq-example-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sampler-seq-example-badge {
+    background: #2b2c34;
+    color: var(--ko, #ff5500);
+    font-size: 0.58rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+.sampler-seq-example-title {
+    font-size: 0.72rem;
     color: #ffffff;
 }
-.sampler-seq-example-chip strong {
-    color: var(--ko, #ff5500);
-    font-size: 0.65rem;
-}
-.sampler-seq-example-chip code {
+
+.sampler-seq-example-code {
+    font-size: 0.62rem;
     color: #e9ff6a;
-    background: #0c0d0e;
-    padding: 2px 4px;
-    border-radius: 2px;
-    font-size: 0.6rem;
+    background: #0d0e11;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #282930;
     word-break: break-all;
 }
+
+.sampler-seq-example-action {
+    font-size: 0.62rem;
+    color: #6eff6e;
+    font-weight: bold;
+    margin-top: 2px;
+}
+
+.sampler-seq-modal-footer {
+    background: #18191e;
+    padding: 10px 14px;
+    border-top: 1px solid #2a2b32;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+}
+
+#sampler-seq-modal-status {
+    color: #888;
+}
+
+.sampler-seq-modal-done-btn {
+    background: var(--ko, #ff5500);
+    color: #ffffff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.sampler-seq-modal-done-btn:hover {
+    background: #ff661a;
+}
+
 

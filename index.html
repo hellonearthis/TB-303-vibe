@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TB-303 + KO-40 Sampler</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=5">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
@@ -385,27 +385,67 @@
                 <div class="sampler-seq-header" id="sampler-seq-toggle-row">
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <span>PATTERN SEQUENCE</span>
-                        <button id="sampler-seq-help-btn" class="sampler-seq-help-btn" title="View usage examples and instructions" aria-label="Pattern sequence help">[?]</button>
+                        <button id="sampler-seq-help-btn" class="sampler-seq-help-btn" title="View usage examples and instructions" aria-label="Pattern sequence help">[?] EXAMPLES</button>
                     </div>
                     <button id="sampler-seq-toggle" class="sampler-seq-toggle-btn" aria-expanded="false">▸ EXPAND</button>
                 </div>
-                <!-- Usage Examples & Help Panel -->
-                <div id="sampler-seq-help-panel" class="sampler-seq-help-panel" style="display: none;">
-                    <div class="sampler-seq-help-title">PATTERN SEQUENCE EXAMPLES</div>
-                    <p class="sampler-seq-help-desc">Arrange pattern slots (1–16) in a JSON array. Click any example below to load it:</p>
-                    <div class="sampler-seq-examples-list">
-                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
-                            <strong>4-Pattern Loop:</strong> <code>[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
-                        </button>
-                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]'>
-                            <strong>A-A-B-A Structure:</strong> <code>[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]</code>
-                        </button>
-                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
-                            <strong>Verse / Chorus Build:</strong> <code>[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
-                        </button>
-                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]'>
-                            <strong>Dynamic Syncopation:</strong> <code>[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]</code>
-                        </button>
+
+                <!-- Pattern Sequence Usage & Examples Floating Modal Popup -->
+                <div id="sampler-seq-modal" class="sampler-seq-modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="sampler-seq-modal-title">
+                    <div class="sampler-seq-modal-card">
+                        <div class="sampler-seq-modal-header">
+                            <div class="sampler-seq-modal-title" id="sampler-seq-modal-title">
+                                <span class="sampler-seq-modal-icon">?</span> PATTERN SEQUENCE EXAMPLES
+                            </div>
+                            <button id="sampler-seq-modal-close" class="sampler-seq-modal-close-btn" aria-label="Close help modal">✕</button>
+                        </div>
+                        <div class="sampler-seq-modal-body">
+                            <p class="sampler-seq-modal-desc">
+                                Arrange your 16 pattern slots (1–16) into a linear play sequence using a JSON array of objects.<br>
+                                <strong>Click any example below to instantly load it:</strong>
+                            </p>
+                            <div class="sampler-seq-modal-grid">
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                                    <div class="sampler-seq-example-header">
+                                        <span class="sampler-seq-example-badge">BASIC</span>
+                                        <strong class="sampler-seq-example-title">4-Pattern Loop</strong>
+                                    </div>
+                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load 4-Pattern Loop</span>
+                                </button>
+                                
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]'>
+                                    <div class="sampler-seq-example-header">
+                                        <span class="sampler-seq-example-badge">SONG</span>
+                                        <strong class="sampler-seq-example-title">A-A-B-A Structure</strong>
+                                    </div>
+                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load A-A-B-A Structure</span>
+                                </button>
+
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                                    <div class="sampler-seq-example-header">
+                                        <span class="sampler-seq-example-badge">ARRANGE</span>
+                                        <strong class="sampler-seq-example-title">Verse / Chorus Progression</strong>
+                                    </div>
+                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Verse/Chorus</span>
+                                </button>
+
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]'>
+                                    <div class="sampler-seq-example-header">
+                                        <span class="sampler-seq-example-badge">COMPLEX</span>
+                                        <strong class="sampler-seq-example-title">Syncopated Pattern Jumps</strong>
+                                    </div>
+                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Syncopation</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="sampler-seq-modal-footer">
+                            <span id="sampler-seq-modal-status">Click any example to load it into the editor</span>
+                            <button id="sampler-seq-modal-done" class="sampler-seq-modal-done-btn">DONE</button>
+                        </div>
                     </div>
                 </div>
                 <div id="sampler-seq-body" class="sampler-seq-body" style="display:none">
@@ -583,23 +623,23 @@
 
     </div>
 
-    <script src="core/clock.js?v=4"></script>
-    <script src="core/pattern.js?v=4"></script>
-    <script src="core/rack.js?v=4"></script>
-    <script src="core/mode.js?v=4"></script>
-    <script src="core/bus.js?v=4"></script>
-    <script src="core/midi-registry.js?v=4"></script>
-    <script src="core/pedalboard.js?v=4"></script>
-    <script src="audio.js?v=4"></script>
-    <script src="grandmother-audio.js?v=4"></script>
-    <script src="monotron-audio.js?v=4"></script>
-    <script src="midi.js?v=4"></script>
-    <script src="sequencer.js?v=4"></script>
-    <script src="sampler.js?v=4"></script>
-    <script src="sampler-ui.js?v=4"></script>
-    <script src="app.js?v=4"></script>
-    <script src="tb303-ui.js?v=4"></script>
-    <script src="grandmother-ui.js?v=4"></script>
-    <script src="monotron-ui.js?v=4"></script>
+    <script src="core/clock.js?v=5"></script>
+    <script src="core/pattern.js?v=5"></script>
+    <script src="core/rack.js?v=5"></script>
+    <script src="core/mode.js?v=5"></script>
+    <script src="core/bus.js?v=5"></script>
+    <script src="core/midi-registry.js?v=5"></script>
+    <script src="core/pedalboard.js?v=5"></script>
+    <script src="audio.js?v=5"></script>
+    <script src="grandmother-audio.js?v=5"></script>
+    <script src="monotron-audio.js?v=5"></script>
+    <script src="midi.js?v=5"></script>
+    <script src="sequencer.js?v=5"></script>
+    <script src="sampler.js?v=5"></script>
+    <script src="sampler-ui.js?v=5"></script>
+    <script src="app.js?v=5"></script>
+    <script src="tb303-ui.js?v=5"></script>
+    <script src="grandmother-ui.js?v=5"></script>
+    <script src="monotron-ui.js?v=5"></script>
 </body>
 </html>
