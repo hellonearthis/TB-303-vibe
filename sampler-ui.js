@@ -591,10 +591,31 @@ class SamplerInstrument extends window.Instrument {
 
             if (is_active_pill_boolean) pill_button_element.classList.add('active');
 
-            // WHAT: Label shows the 1-indexed pattern number, zero-padded.
-            // WHY:  Matches the PATTERN dropdown labels ("01", "02", etc.) so the
-            //       user immediately maps pills to patterns without mental translation.
-            pill_button_element.textContent = `P${String(sequence_entry_object.pattern).padStart(2, '0')}`;
+            // WHAT: Label shows pattern number plus optional per-entry parameters (repeat, transpose, mute, bpm).
+            // WHY:  Pill indicators immediately inform the user of complex sequence structures like repeats or pitch transpositions.
+            const pattern_number_padded_string = String(sequence_entry_object.pattern).padStart(2, '0');
+            let pill_label_string = `P${pattern_number_padded_string}`;
+
+            const repeat_count_integer = sequence_entry_object.repeat ?? sequence_entry_object.repeats;
+            if (repeat_count_integer && repeat_count_integer > 1) {
+                pill_label_string += ` (x${repeat_count_integer})`;
+            }
+
+            if (sequence_entry_object.transpose) {
+                const sign_prefix_string = sequence_entry_object.transpose > 0 ? '+' : '';
+                pill_label_string += ` (${sign_prefix_string}${sequence_entry_object.transpose}st)`;
+            }
+
+            if (sequence_entry_object.mute) {
+                pill_label_string += ' (MUTE)';
+            }
+
+            const bpm_override_integer = sequence_entry_object.bpm ?? sequence_entry_object.bpmOverride;
+            if (bpm_override_integer) {
+                pill_label_string += ` (${bpm_override_integer}BPM)`;
+            }
+
+            pill_button_element.textContent = pill_label_string;
 
             // WHAT: Clicking a pill jumps to that entry's pattern (when not in SEQ mode).
             // WHY:  Useful for quick auditioning of individual patterns in the sequence

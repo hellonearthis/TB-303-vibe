@@ -99,10 +99,14 @@ The sampler has **16 patterns**, each with **16 steps**.
 The sampler has a dedicated **Pattern Sequence Editor** below the step sequencer. It lets you arrange the 16 pattern slots into a linear play order, looping back to the beginning when it finishes.
 
 - **Expanding the editor**: Click `▸ EXPAND` in the `PATTERN SEQUENCE` panel.
-- **Specifying the sequence**: The sequence is defined using a JSON array of objects, where each object has a `"pattern"` key (integer 1–16).
-  - Example sequence: `[{"pattern": 1}, {"pattern": 3}, {"pattern": 2}, {"pattern": 3}]`
+- **Specifying the sequence**: The sequence is defined using a JSON array of objects with a required `"pattern"` key (integer 1–16) and optional per-entry parameters:
+  - `"repeat"` (integer $\ge 1$): Repeat this pattern $N$ times before advancing. Example: `[{"pattern": 1, "repeat": 4}]`
+  - `"transpose"` (integer semitones): Transpose pattern pitch by $+/- N$ semitones. Example: `[{"pattern": 1, "transpose": 2}]`
+  - `"mute"` (boolean): Play a rest/silent bar during this step. Example: `[{"pattern": 2, "mute": true}]`
+  - `"bpm"` (integer 60–200): Temporarily shift transport BPM for this entry. Example: `[{"pattern": 1, "bpm": 140}]`
   - The editor validates your JSON in real-time. If it is invalid, a warning indicator will explain the error and the play button will be disabled.
-- **Pill list**: A visual sequence layout appears as you type:
+- **Examples Popup**: Click `[?] EXAMPLES` in the header to open an interactive modal overlay with click-to-load preset cards.
+- **Pill list**: A visual sequence layout appears as you type, showing active parameters (e.g. `P01 (x4)`, `P02 (+2st)`):
   - When the sequencer is stopped, click a pill to jump to that pattern slot for quick previewing/editing.
   - When playing, the active pattern pill highlights and glows to track playback position in real-time.
 - **Transport**:

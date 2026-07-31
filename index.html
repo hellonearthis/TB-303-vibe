@@ -402,43 +402,43 @@
                         <div class="sampler-seq-modal-body">
                             <p class="sampler-seq-modal-desc">
                                 Arrange your 16 pattern slots (1–16) into a linear play sequence using a JSON array of objects.<br>
-                                <strong>Click any example below to instantly load it:</strong>
+                                <strong>Supported per-entry parameters:</strong> <code>pattern</code> (1-16), <code>repeat</code> (loops bar N times), <code>transpose</code> (+/- semitones), <code>mute</code> (true/false), and <code>bpm</code> (60-200).
                             </p>
                             <div class="sampler-seq-modal-grid">
-                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1,"repeat":4},{"pattern":2,"repeat":2},{"pattern":3}]'>
                                     <div class="sampler-seq-example-header">
-                                        <span class="sampler-seq-example-badge">BASIC</span>
-                                        <strong class="sampler-seq-example-title">4-Pattern Loop</strong>
+                                        <span class="sampler-seq-example-badge">REPEAT</span>
+                                        <strong class="sampler-seq-example-title">Pattern Repeats (repeat: N)</strong>
                                     </div>
-                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
-                                    <span class="sampler-seq-example-action">▶ Load 4-Pattern Loop</span>
+                                    <code class="sampler-seq-example-code">[{"pattern":1,"repeat":4},{"pattern":2,"repeat":2},{"pattern":3}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Repeats Example</span>
                                 </button>
                                 
-                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]'>
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":1,"transpose":2},{"pattern":1,"transpose":4},{"pattern":1,"transpose":7}]'>
                                     <div class="sampler-seq-example-header">
-                                        <span class="sampler-seq-example-badge">SONG</span>
-                                        <strong class="sampler-seq-example-title">A-A-B-A Structure</strong>
+                                        <span class="sampler-seq-example-badge">TRANSPOSE</span>
+                                        <strong class="sampler-seq-example-title">Key Shift (transpose: +/-st)</strong>
                                     </div>
-                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]</code>
-                                    <span class="sampler-seq-example-action">▶ Load A-A-B-A Structure</span>
+                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":1,"transpose":2},{"pattern":1,"transpose":4}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Transpose Shift</span>
                                 </button>
 
-                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1,"repeat":2},{"pattern":2,"mute":true},{"pattern":1,"transpose":5,"repeat":2}]'>
                                     <div class="sampler-seq-example-header">
-                                        <span class="sampler-seq-example-badge">ARRANGE</span>
-                                        <strong class="sampler-seq-example-title">Verse / Chorus Progression</strong>
+                                        <span class="sampler-seq-example-badge">ADVANCED</span>
+                                        <strong class="sampler-seq-example-title">Song Build with Mute Rest</strong>
                                     </div>
-                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
-                                    <span class="sampler-seq-example-action">▶ Load Verse/Chorus</span>
+                                    <code class="sampler-seq-example-code">[{"pattern":1,"repeat":2},{"pattern":2,"mute":true},{"pattern":1,"transpose":5}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Full Arrangement</span>
                                 </button>
 
-                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]'>
+                                <button type="button" class="sampler-seq-example-card" data-json='[{"pattern":1,"bpm":120},{"pattern":2,"bpm":140},{"pattern":3,"bpm":160}]'>
                                     <div class="sampler-seq-example-header">
-                                        <span class="sampler-seq-example-badge">COMPLEX</span>
-                                        <strong class="sampler-seq-example-title">Syncopated Pattern Jumps</strong>
+                                        <span class="sampler-seq-example-badge">TEMPO</span>
+                                        <strong class="sampler-seq-example-title">BPM Modulation (bpm: N)</strong>
                                     </div>
-                                    <code class="sampler-seq-example-code">[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]</code>
-                                    <span class="sampler-seq-example-action">▶ Load Syncopation</span>
+                                    <code class="sampler-seq-example-code">[{"pattern":1,"bpm":120},{"pattern":2,"bpm":140},{"pattern":3,"bpm":160}]</code>
+                                    <span class="sampler-seq-example-action">▶ Load Tempo Modulation</span>
                                 </button>
                             </div>
                         </div>

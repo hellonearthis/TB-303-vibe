@@ -313,37 +313,58 @@ class KO40SamplerEngine {
     tick(scheduled_audio_time, current_step_index) {
         const step_data_object = this.patterns[this.patternIndex][current_step_index];
 
-        if (step_data_object !== null) {
+        // WHAT: Check if the current sequence entry specifies mute or per-entry transposition.
+        // WHY:  Sequence mode allows per-entry overrides like mute: true or transpose: +2 semitones.
+        const current_sequence_entry_object = this.sequenceModeActive && this.sequence.length > 0
+            ? this.sequence[this.sequencePosition]
+            : null;
+
+        const is_current_entry_muted_boolean = current_sequence_entry_object?.mute === true;
+
+        if (step_data_object !== null && !is_current_entry_muted_boolean) {
+            const sequence_transpose_offset_integer = current_sequence_entry_object?.transpose ?? 0;
+            const combined_transpose_semitones_integer = step_data_object.transposeSemitones + sequence_transpose_offset_integer;
+
             this.play(
                 step_data_object.slotIndex,
                 scheduled_audio_time,
-                step_data_object.transposeSemitones,
+                combined_transpose_semitones_integer,
                 step_data_object.velocityFloat,
                 step_data_object.fxOverrideString
             );
         }
 
-        // WHAT: On the last step of the pattern, advance the sequence position if
-        //       sequence mode is active and there is more than one entry to cycle through.
-        // WHY:  We advance here — at the END of the current pattern — rather than the
-        //       start, so the pattern change takes effect on the very next step-0 tick.
-        //       Critically, we do NOT restart Tone.Sequence; we only swap which data
-        //       this.patterns[this.patternIndex] points at, giving gapless transitions.
+        // WHAT: On step 15 (end of pattern), handle pattern repeats and advance to the next entry when complete.
+        // WHY:  Supports optional "repeat" / "repeats" (e.g. repeat: 4 plays the pattern 4 times before advancing).
         if (this.sequenceModeActive && this.sequence.length > 0 && current_step_index === 15) {
-            // WHAT: Wrap sequencePosition back to 0 when we reach the end of the list.
-            // WHY:  Modulo arithmetic is the simplest correct looping mechanism.
-            this.sequencePosition = (this.sequencePosition + 1) % this.sequence.length;
+            const active_entry_object = this.sequence[this.sequencePosition];
+            const target_repeat_limit_integer = Math.max(1, parseInt(active_entry_object?.repeat ?? active_entry_object?.repeats ?? 1, 10));
 
-            // WHAT: Read the pattern number (1-indexed in JSON) and convert to 0-indexed.
-            // WHY:  Users write pattern numbers like "1", "2" to match the UI dropdown labels,
-            //       but internally patterns are stored in a 0-indexed array.
+            this.sequenceRepeatCounter++;
+
+            if (this.sequenceRepeatCounter >= target_repeat_limit_integer) {
+                this.sequenceRepeatCounter = 0;
+                this.sequencePosition = (this.sequencePosition + 1) % this.sequence.length;
+            }
+
             const next_entry_object = this.sequence[this.sequencePosition];
             this.patternIndex = Math.max(0, Math.min(15, (next_entry_object.pattern ?? 1) - 1));
 
-            // WHAT: Notify the UI that the sequence position changed so it can re-highlight the active pill.
-            // WHY:  The engine should not touch the DOM directly; instead it fires a callback that the UI controller
-            //       subscribed to — keeping the audio thread and DOM thread cleanly separated.
-            if (this.onSequenceAdvance) this.onSequenceAdvance(this.sequencePosition, this.patternIndex);
+            // WHAT: Apply optional per-entry BPM override if specified (e.g. "bpm": 140).
+            // WHY:  Allows tempo modulation between sequence sections.
+            if (next_entry_object?.bpm || next_entry_object?.bpmOverride) {
+                const target_bpm_integer = Math.max(60, Math.min(200, parseInt(next_entry_object.bpm || next_entry_object.bpmOverride, 10)));
+                Tone.Transport.bpm.value = target_bpm_integer;
+            }
+
+            if (this.onSequenceAdvance) {
+                this.onSequenceAdvance(
+                    this.sequencePosition,
+                    this.patternIndex,
+                    this.sequenceRepeatCounter,
+                    target_repeat_limit_integer
+                );
+            }
         }
 
         // WHAT: Schedule the playhead visual update to sync with audio time, not wall time.
@@ -380,6 +401,24 @@ class KO40SamplerEngine {
                 if (!Number.isInteger(pattern_number) || pattern_number < 1 || pattern_number > 16) {
                     return { ok: false, entries: [], error: `Entry ${entry_index + 1}: "pattern" must be an integer 1–16` };
                 }
+
+                const repeat_count = sequence_entry_object.repeat ?? sequence_entry_object.repeats;
+                if (repeat_count !== undefined && (!Number.isInteger(repeat_count) || repeat_count < 1)) {
+                    return { ok: false, entries: [], error: `Entry ${entry_index + 1}: "repeat" must be a positive integer >= 1` };
+                }
+
+                if (sequence_entry_object.transpose !== undefined && !Number.isInteger(sequence_entry_object.transpose)) {
+                    return { ok: false, entries: [], error: `Entry ${entry_index + 1}: "transpose" must be an integer semitone count` };
+                }
+
+                if (sequence_entry_object.mute !== undefined && typeof sequence_entry_object.mute !== 'boolean') {
+                    return { ok: false, entries: [], error: `Entry ${entry_index + 1}: "mute" must be boolean (true/false)` };
+                }
+
+                const bpm_value = sequence_entry_object.bpm ?? sequence_entry_object.bpmOverride;
+                if (bpm_value !== undefined && (!Number.isInteger(bpm_value) || bpm_value < 60 || bpm_value > 200)) {
+                    return { ok: false, entries: [], error: `Entry ${entry_index + 1}: "bpm" must be an integer 60–200` };
+                }
             }
 
             return { ok: true, entries: parsed_value, error: '' };
@@ -398,12 +437,19 @@ class KO40SamplerEngine {
         // WHY:  Resuming mid-sequence would be confusing; a fresh press should always
         //       give predictable behaviour — start at the top of the list.
         this.sequencePosition = 0;
+        this.sequenceRepeatCounter = 0;
         this.sequenceModeActive = true;
 
         // WHAT: Load the first entry's pattern before starting the sequencer.
         // WHY:  Without this, the first bar would play whatever patternIndex happened
         //       to be selected in the dropdown — not the sequence's first entry.
         this.patternIndex = Math.max(0, Math.min(15, (this.sequence[0].pattern ?? 1) - 1));
+
+        // WHAT: Apply initial per-entry BPM override if specified.
+        if (this.sequence[0]?.bpm || this.sequence[0]?.bpmOverride) {
+            const initial_bpm_integer = Math.max(60, Math.min(200, parseInt(this.sequence[0].bpm || this.sequence[0].bpmOverride, 10)));
+            Tone.Transport.bpm.value = initial_bpm_integer;
+        }
 
         this.startSequence(true);
     }
@@ -414,6 +460,7 @@ class KO40SamplerEngine {
     stopSequenceMode() {
         this.sequenceModeActive = false;
         this.sequencePosition = 0;
+        this.sequenceRepeatCounter = 0;
         this.stopSequence();
     }
 
