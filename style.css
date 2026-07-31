@@ -1594,3 +1594,84 @@ body.midi-learn-active .monotron-knob-group:hover {
     border-color: #888;
     color: #ddd;
 }
+
+/* WHAT: Help button [?] for pattern sequence usage instructions and examples.
+   WHY:  Provides quick accessibility for users seeking JSON format guidance without taking up screen real estate. */
+.sampler-seq-help-btn {
+    background: #171915;
+    border: 1px solid #444;
+    color: #e9ff6a;
+    font: 0.65rem 'Share Tech Mono', monospace;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+.sampler-seq-help-btn:hover, .sampler-seq-help-btn.active {
+    background: var(--ko, #ff5500);
+    color: #ffffff;
+    border-color: var(--ko, #ff5500);
+    box-shadow: 0 0 6px rgba(255, 85, 0, 0.4);
+}
+
+/* WHAT: Collapsible usage examples and instructions panel.
+   WHY:  Displays structured preset chips and JSON rules in a visually distinct container. */
+.sampler-seq-help-panel {
+    background: rgba(15, 15, 18, 0.95);
+    border: 1px solid rgba(255, 85, 0, 0.35);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 6px 0;
+    font-family: 'Share Tech Mono', monospace;
+}
+.sampler-seq-help-title {
+    font-size: 0.68rem;
+    font-weight: bold;
+    color: var(--ko, #ff5500);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+.sampler-seq-help-desc {
+    font-size: 0.62rem;
+    color: #bbb;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+.sampler-seq-examples-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.sampler-seq-example-chip {
+    background: #1e1e23;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #ddd;
+    padding: 5px 8px;
+    font: 0.62rem 'Share Tech Mono', monospace;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sampler-seq-example-chip:hover {
+    background: #282830;
+    border-color: var(--ko, #ff5500);
+    color: #ffffff;
+}
+.sampler-seq-example-chip strong {
+    color: var(--ko, #ff5500);
+    font-size: 0.65rem;
+}
+.sampler-seq-example-chip code {
+    color: #e9ff6a;
+    background: #0c0d0e;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    word-break: break-all;
+}
+

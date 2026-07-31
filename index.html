@@ -383,8 +383,30 @@
             <!-- Pattern Sequence Editor -->
             <div id="sampler-seq-editor" class="sampler-seq-editor">
                 <div class="sampler-seq-header" id="sampler-seq-toggle-row">
-                    <span>PATTERN SEQUENCE</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span>PATTERN SEQUENCE</span>
+                        <button id="sampler-seq-help-btn" class="sampler-seq-help-btn" title="View usage examples and instructions" aria-label="Pattern sequence help">[?]</button>
+                    </div>
                     <button id="sampler-seq-toggle" class="sampler-seq-toggle-btn" aria-expanded="false">▸ EXPAND</button>
+                </div>
+                <!-- Usage Examples & Help Panel -->
+                <div id="sampler-seq-help-panel" class="sampler-seq-help-panel" style="display: none;">
+                    <div class="sampler-seq-help-title">PATTERN SEQUENCE EXAMPLES</div>
+                    <p class="sampler-seq-help-desc">Arrange pattern slots (1–16) in a JSON array. Click any example below to load it:</p>
+                    <div class="sampler-seq-examples-list">
+                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                            <strong>4-Pattern Loop:</strong> <code>[{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
+                        </button>
+                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]'>
+                            <strong>A-A-B-A Structure:</strong> <code>[{"pattern":1},{"pattern":1},{"pattern":2},{"pattern":1}]</code>
+                        </button>
+                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]'>
+                            <strong>Verse / Chorus Build:</strong> <code>[{"pattern":1},{"pattern":2},{"pattern":1},{"pattern":2},{"pattern":3},{"pattern":4}]</code>
+                        </button>
+                        <button type="button" class="sampler-seq-example-chip" data-json='[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]'>
+                            <strong>Dynamic Syncopation:</strong> <code>[{"pattern":1},{"pattern":3},{"pattern":2},{"pattern":4},{"pattern":5},{"pattern":1}]</code>
+                        </button>
+                    </div>
                 </div>
                 <div id="sampler-seq-body" class="sampler-seq-body" style="display:none">
                     <textarea id="sampler-seq-input" class="sampler-seq-input" spellcheck="false"

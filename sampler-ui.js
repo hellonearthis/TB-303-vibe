@@ -426,6 +426,44 @@ class SamplerInstrument extends window.Instrument {
             sequence_toggle_button_element.setAttribute('aria-expanded', String(!is_currently_open_boolean));
         };
 
+        // WHAT: Toggles the pattern sequence usage help panel and ensures editor body is expanded.
+        // WHY:  When users click the [?] button, they want to see usage examples immediately.
+        //       Expanding the editor body if closed ensures the textarea is visible when an example is clicked.
+        const sequence_help_button_element = document.getElementById('sampler-seq-help-btn');
+        if (sequence_help_button_element) {
+            sequence_help_button_element.onclick = () => {
+                const help_panel_element = document.getElementById('sampler-seq-help-panel');
+                const sequence_body_element = document.getElementById('sampler-seq-body');
+                const sequence_toggle_button_element = document.getElementById('sampler-seq-toggle');
+
+                const is_help_panel_currently_visible_boolean = help_panel_element.style.display !== 'none';
+                help_panel_element.style.display = is_help_panel_currently_visible_boolean ? 'none' : 'block';
+                sequence_help_button_element.classList.toggle('active', !is_help_panel_currently_visible_boolean);
+
+                // Auto-expand body if it is closed so the user sees where examples load into
+                if (!is_help_panel_currently_visible_boolean && sequence_body_element.style.display === 'none') {
+                    sequence_body_element.style.display = '';
+                    sequence_toggle_button_element.textContent = '▾ COLLAPSE';
+                    sequence_toggle_button_element.setAttribute('aria-expanded', 'true');
+                }
+            };
+        }
+
+        // WHAT: Binds click handlers to example buttons to load preset JSON strings into the input textarea.
+        // WHY:  Allows instant trial of pre-configured pattern arrangements with a single click.
+        const example_chip_elements_array = Array.from(document.querySelectorAll('.sampler-seq-example-chip'));
+        example_chip_elements_array.forEach((example_chip_button_element) => {
+            example_chip_button_element.onclick = () => {
+                const target_json_string = example_chip_button_element.getAttribute('data-json');
+                const sequence_input_element = document.getElementById('sampler-seq-input');
+                if (target_json_string && sequence_input_element) {
+                    sequence_input_element.value = target_json_string;
+                    this._parseAndApplySequenceInput();
+                    this.message('EXAMPLE LOADED', 'PATTERN SEQUENCE UPDATED');
+                }
+            };
+        });
+
         // WHAT: Parse the textarea content on every keystroke and update engine.sequence.
         // WHY:  Live parsing gives the user immediate feedback (error message + pill list update)
         //       as they type, rather than only validating on play-press.
