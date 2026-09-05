@@ -120,12 +120,25 @@
                     }
                     execution_result_payload = { success: true, instrument: "303", param: target_parameter_name, value: target_parameter_value };
                 } else if (target_instrument_name === "moog" && window.GrandmotherEngine) {
-                    if (target_parameter_name in window.GrandmotherEngine.timing) {
+                    if (target_parameter_name === "drone" || target_parameter_name === "power" || target_parameter_name === "playing") {
+                        const should_enable_drone = Boolean(target_parameter_value);
+                        const drone_button_element = document.getElementById("btn-drone-toggle");
+                        if (drone_button_element) {
+                            if ((should_enable_drone && !window.GrandmotherEngine.isPlaying) || (!should_enable_drone && window.GrandmotherEngine.isPlaying)) {
+                                drone_button_element.click();
+                            }
+                        } else {
+                            if (should_enable_drone) window.GrandmotherEngine.startDrone();
+                            else window.GrandmotherEngine.stopDrone();
+                        }
+                        execution_result_payload = { success: true, instrument: "moog", drone: window.GrandmotherEngine.isPlaying };
+                    } else if (target_parameter_name in window.GrandmotherEngine.timing) {
                         window.GrandmotherEngine.setTimingParam(target_parameter_name, target_parameter_value);
+                        execution_result_payload = { success: true, instrument: "moog", param: target_parameter_name, value: target_parameter_value };
                     } else {
                         window.GrandmotherEngine.setParam(target_parameter_name, target_parameter_value);
+                        execution_result_payload = { success: true, instrument: "moog", param: target_parameter_name, value: target_parameter_value };
                     }
-                    execution_result_payload = { success: true, instrument: "moog", param: target_parameter_name, value: target_parameter_value };
                 } else if (target_instrument_name === "monotron" && window.MonotronAudio) {
                     const monotron_method_lookup_dictionary = {
                         cutoff: "setCutoff",
