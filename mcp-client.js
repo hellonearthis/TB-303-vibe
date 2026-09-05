@@ -266,6 +266,120 @@
                 break;
             }
 
+            case "run_pedal_jam": {
+                // WHAT: Orchestrates a multi-stage, dynamic 60-second live performance.
+                // WHY:  Rhythmically activates effect pedals, sweeps filters, adjusts delays, and rotates pattern slots.
+                const total_duration_seconds = Math.max(10, Math.min(120, command_payload_object.duration_seconds || 60));
+
+                if (window.Tone && window.Tone.context && window.Tone.context.state !== "running") {
+                    window.Tone.start();
+                }
+                if (window.SequencerEngine && !window.SequencerEngine.isPlaying) {
+                    window.SequencerEngine.start();
+                }
+
+                const helper_set_pedal = (pedal_name_key, is_enabled_state, param_name_key, param_value_amount) => {
+                    if (window.PedalBoard) {
+                        window.PedalBoard.setPedalEnabled(pedal_name_key, is_enabled_state);
+                        const checkbox_element = document.getElementById(`pedal-${pedal_name_key}`);
+                        if (checkbox_element) checkbox_element.checked = is_enabled_state;
+                        if (param_name_key !== undefined && param_value_amount !== undefined) {
+                            window.PedalBoard.setPedalParam(pedal_name_key, param_name_key, param_value_amount);
+                            const row_element = document.querySelector(`.pedal-row[data-pedal="${pedal_name_key}"]`);
+                            const slider_element = row_element?.querySelector(`.pedal-param-slider[data-param="${param_name_key}"]`);
+                            if (slider_element) slider_element.value = param_value_amount;
+                        }
+                    }
+                };
+
+                const helper_set_synth = (parameter_name_key, parameter_value_amount) => {
+                    if (window.AudioEngine) {
+                        window.AudioEngine.setParam(parameter_name_key, parameter_value_amount);
+                        const dom_input_identifier = parameter_name_key === "accentAmount" ? "accent-amount" : parameter_name_key === "envMod" ? "env-mod" : parameter_name_key;
+                        const input_element = document.getElementById(dom_input_identifier);
+                        if (input_element) input_element.value = parameter_value_amount;
+                    }
+                };
+
+                let elapsed_seconds_counter = 0;
+                const jam_interval_identifier = setInterval(() => {
+                    elapsed_seconds_counter += 1;
+
+                    // Continuous filter sweeps across the entire performance
+                    const sweep_oscillation_factor = (Math.sin(elapsed_seconds_counter * 0.7) + 1) / 2;
+                    helper_set_synth("cutoff", 0.15 + sweep_oscillation_factor * 0.65);
+
+                    // Stage 1 (0-12s): Overdrive drive & Pattern 2
+                    if (elapsed_seconds_counter === 1) {
+                        window.SequencerEngine?.queuePattern(2);
+                        helper_set_pedal("overdrive", true, "gain", 0.55);
+                        helper_set_pedal("overdrive", true, "tone", 4000);
+                        helper_set_synth("resonance", 0.65);
+                    }
+
+                    // Stage 2 (12-24s): Swirling Phaser & Pattern 4
+                    if (elapsed_seconds_counter === 12) {
+                        window.SequencerEngine?.queuePattern(4);
+                        helper_set_pedal("phaser", true, "rate", 1.2);
+                        helper_set_pedal("phaser", true, "depth", 0.8);
+                        helper_set_synth("envMod", 0.8);
+                    }
+
+                    // Stage 3 (24-36s): Tape Delay Space Echo & Pattern 6
+                    if (elapsed_seconds_counter === 24) {
+                        window.SequencerEngine?.queuePattern(6);
+                        helper_set_pedal("delay", true, "time", 0.32);
+                        helper_set_pedal("delay", true, "feedback", 0.68);
+                        helper_set_pedal("delay", true, "mix", 0.55);
+                        helper_set_pedal("overdrive", false);
+                    }
+
+                    // Stage 4 (36-48s): Lush Stereo Chorus + Spring Reverb & Pattern 8
+                    if (elapsed_seconds_counter === 36) {
+                        window.SequencerEngine?.queuePattern(8);
+                        helper_set_pedal("phaser", false);
+                        helper_set_pedal("chorus", true, "rate", 2.0);
+                        helper_set_pedal("chorus", true, "depth", 0.7);
+                        helper_set_pedal("reverb", true, "decay", 3.5);
+                        helper_set_pedal("reverb", true, "mix", 0.65);
+                        helper_set_synth("resonance", 0.82);
+                    }
+
+                    // Stage 5 (48-56s): Peak Distortion Climax & Pattern 9
+                    if (elapsed_seconds_counter === 48) {
+                        window.SequencerEngine?.queuePattern(9);
+                        helper_set_pedal("distortion", true, "gain", 0.78);
+                        helper_set_pedal("distortion", true, "tone", 5500);
+                        helper_set_pedal("delay", true, "feedback", 0.45);
+                        helper_set_synth("cutoff", 0.9);
+                    }
+
+                    // Stage 6 (56-60s): Cooldown & Return to Pattern 1
+                    if (elapsed_seconds_counter === 56) {
+                        window.SequencerEngine?.queuePattern(1);
+                        helper_set_pedal("distortion", false);
+                        helper_set_pedal("chorus", false);
+                        helper_set_pedal("overdrive", false);
+                        helper_set_pedal("phaser", false);
+                        helper_set_pedal("delay", true, "mix", 0.25);
+                        helper_set_pedal("reverb", true, "mix", 0.35);
+                        helper_set_synth("cutoff", 0.35);
+                        helper_set_synth("resonance", 0.5);
+                    }
+
+                    if (elapsed_seconds_counter >= total_duration_seconds) {
+                        clearInterval(jam_interval_identifier);
+                    }
+                }, 1000);
+
+                execution_result_payload = {
+                    success: true,
+                    message: `Started 60-second automated pedalboard jam! Watch the pedalboard and synth knobs live in Firefox.`,
+                    duration_seconds: total_duration_seconds
+                };
+                break;
+            }
+
             case "get_current_state": {
                 // WHAT: Returns a complete structural snapshot of the workstation's active state.
                 // WHY:  Allows an AI agent to read context before calculating musical changes.

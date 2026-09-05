@@ -329,6 +329,23 @@ const model_context_protocol_tool_definitions_list = [
         },
     },
     {
+        name: "run_pedal_jam",
+        description:
+            "Launch a dynamic 60-second automated live performance that rhythmically sweeps overdrive, phaser, tape delay, chorus, reverb, and distortion pedals alongside filter sweeps and pattern rotations.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                duration_seconds: {
+                    type: "integer",
+                    minimum: 10,
+                    maximum: 120,
+                    default: 60,
+                    description: "Duration of the live pedal jam in seconds (default: 60).",
+                },
+            },
+        },
+    },
+    {
         name: "get_current_state",
         description:
             "Read back the complete operational state of the rack: active transport status, tempo, mode, TB-303 grid and sound settings, Moog drone status, and sampler sequence information.",
