@@ -7,6 +7,7 @@ This project also includes a small rack of extra panels that integrate with the 
 - KO–40 Micro Sampler (records from mic or resamples the 303)
 - KORG monotron (Original / Duo / Delay models, plus optional 303 external input routing)
 - Moog Grandmother drone synth (plus optional 303 input routing)
+- **Model Context Protocol (MCP)**: AI agent controllable via local WebSocket bridge (see [mcp_readme.md](mcp_readme.md))
 
 ## AI Collaboration & GPT-5.6
 
@@ -20,6 +21,7 @@ This project enforces strict coding rules for all contributors, especially AI as
 
 ## Features
 
+- **Model Context Protocol (MCP)**: Program patterns, tweak synth knobs, arrange sampler sequences, and automate pedal jams using AI agents in Claude, Antigravity, or Cursor (see [mcp_readme.md](mcp_readme.md)).
 - **Authentic Signal Flow**: Sawtooth/Square oscillator running through a heavily resonant lowpass filter with custom envelope modulation and decay controls.
 - **Tone.js Audio Engine**: Utilizes Tone.js for high-precision scheduling, DSP effects (distortion/saturation), and perfect sync.
 - **Grid-Style Sequencer**: An intuitive, modern piano-roll grid replacing the archaic original input method while retaining the strict 16-step monophonic behavior.
