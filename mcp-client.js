@@ -144,9 +144,23 @@
                         feedback: "setDelayFeedback",
                         model: "setModel",
                     };
-                    const normalized_key = target_parameter_name.toLowerCase();
-                    const target_method_name = monotron_method_lookup_dictionary[normalized_key];
-                    if (target_method_name && typeof window.MonotronAudio[target_method_name] === "function") {
+                    if (normalized_key === "noteon" || normalized_key === "trigger") {
+                        const target_frequency_hertz = typeof target_parameter_value === "number"
+                            ? target_parameter_value
+                            : (window.Tone ? window.Tone.Frequency(target_parameter_value).toFrequency() : 440);
+                        window.MonotronAudio.noteOn(target_frequency_hertz);
+                        execution_result_payload = { success: true, instrument: "monotron", action: "noteOn", frequency: target_frequency_hertz };
+                    } else if (normalized_key === "noteoff") {
+                        window.MonotronAudio.noteOff();
+                        execution_result_payload = { success: true, instrument: "monotron", action: "noteOff" };
+                    } else if (normalized_key === "gate") {
+                        if (target_parameter_value) {
+                            window.MonotronAudio.noteOn();
+                        } else {
+                            window.MonotronAudio.noteOff();
+                        }
+                        execution_result_payload = { success: true, instrument: "monotron", gate: Boolean(target_parameter_value) };
+                    } else if (target_method_name && typeof window.MonotronAudio[target_method_name] === "function") {
                         window.MonotronAudio[target_method_name](target_parameter_value);
                         execution_result_payload = { success: true, instrument: "monotron", param: target_parameter_name, value: target_parameter_value };
                     } else {
@@ -376,6 +390,99 @@
                     success: true,
                     message: `Started 60-second automated pedalboard jam! Watch the pedalboard and synth knobs live in Firefox.`,
                     duration_seconds: total_duration_seconds
+                };
+                break;
+            }
+
+            case "play_monotron": {
+                // WHAT: Performs an expressive, live synth lead on the Korg Monotron ribbon synth.
+                // WHY:  Animates the visual ribbon touch indicator, automates MS-20 filter sweeps, and plays musical notes over the active beat.
+                if (!window.MonotronAudio) {
+                    return { success: false, error: "MonotronAudio engine is not initialized." };
+                }
+
+                if (window.Tone && window.Tone.context && window.Tone.context.state !== "running") {
+                    window.Tone.start();
+                }
+
+                const total_solo_duration_seconds = Math.max(5, Math.min(60, command_payload_object.duration_seconds || 20));
+                const chosen_model_name = command_payload_object.model || "duo";
+
+                // Setup Monotron settings
+                window.MonotronAudio.setModel(chosen_model_name);
+                const model_select_element = document.getElementById("monotron-model");
+                if (model_select_element) {
+                    model_select_element.value = chosen_model_name;
+                    model_select_element.dispatchEvent(new Event("change"));
+                }
+
+                window.MonotronAudio.setVolume(0.85);
+                window.MonotronAudio.setCutoff(0.55);
+                window.MonotronAudio.setPeak(0.65);
+                if (chosen_model_name === "duo") {
+                    window.MonotronAudio.setXMod(0.35);
+                    window.MonotronAudio.setVCO2Pitch(0.4);
+                } else if (chosen_model_name === "delay") {
+                    window.MonotronAudio.setDelayTime(0.35);
+                    window.MonotronAudio.setDelayFeedback(0.65);
+                }
+
+                // C minor pentatonic lead scale frequencies in Hz (C4, D#4, F4, G4, A#4, C5, D#5, F5)
+                const lead_frequencies_array = [261.63, 311.13, 349.23, 392.00, 466.16, 523.25, 622.25, 698.46];
+                const ribbon_touch_indicator_element = document.querySelector(".ribbon-touch-indicator");
+
+                let solo_step_counter = 0;
+                const solo_interval_milliseconds = 200; // 5 notes per second
+                const total_number_of_ticks = (total_solo_duration_seconds * 1000) / solo_interval_milliseconds;
+
+                // Start initial note
+                window.MonotronAudio.noteOn(lead_frequencies_array[0]);
+
+                const solo_interval_identifier = setInterval(() => {
+                    solo_step_counter += 1;
+
+                    // Play a new note or slide
+                    if (Math.random() > 0.12) {
+                        const random_note_index = Math.floor(Math.random() * lead_frequencies_array.length);
+                        const target_frequency_hertz = lead_frequencies_array[random_note_index];
+                        window.MonotronAudio.setPitch(target_frequency_hertz);
+
+                        // Move visual ribbon touch indicator
+                        if (ribbon_touch_indicator_element) {
+                            const ribbon_percentage = (random_note_index / (lead_frequencies_array.length - 1)) * 90 + 5;
+                            ribbon_touch_indicator_element.style.left = `${ribbon_percentage}%`;
+                        }
+
+                        // Re-trigger envelope rhythmically
+                        if (solo_step_counter % 2 === 0) {
+                            window.MonotronAudio.noteOn(target_frequency_hertz);
+                        }
+                    } else {
+                        // Occasional staccato rest
+                        window.MonotronAudio.noteOff();
+                    }
+
+                    // Dynamically sweep cutoff & X-mod
+                    const cutoff_sweep_factor = (Math.sin(solo_step_counter * 0.25) + 1) / 2;
+                    window.MonotronAudio.setCutoff(0.25 + cutoff_sweep_factor * 0.65);
+                    if (chosen_model_name === "duo") {
+                        window.MonotronAudio.setXMod(0.15 + (1 - cutoff_sweep_factor) * 0.5);
+                    }
+
+                    if (solo_step_counter >= total_number_of_ticks) {
+                        clearInterval(solo_interval_identifier);
+                        window.MonotronAudio.noteOff();
+                        if (ribbon_touch_indicator_element) {
+                            ribbon_touch_indicator_element.style.left = "50%";
+                        }
+                    }
+                }, solo_interval_milliseconds);
+
+                execution_result_payload = {
+                    success: true,
+                    message: `Playing Monotron ${chosen_model_name.toUpperCase()} lead solo for ${total_solo_duration_seconds} seconds!`,
+                    duration_seconds: total_solo_duration_seconds,
+                    model: chosen_model_name
                 };
                 break;
             }

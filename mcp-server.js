@@ -346,6 +346,29 @@ const model_context_protocol_tool_definitions_list = [
         },
     },
     {
+        name: "play_monotron",
+        description:
+            "Perform an expressive live solo or rhythmic arpeggio on the Korg Monotron analog ribbon synth with portamento pitch glides, MS-20 filter sweeps, and X-MOD modulation over the running 303 beat.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                duration_seconds: {
+                    type: "integer",
+                    minimum: 5,
+                    maximum: 60,
+                    default: 20,
+                    description: "Duration of the Monotron performance in seconds (default: 20).",
+                },
+                model: {
+                    type: "string",
+                    enum: ["duo", "delay", "classic"],
+                    default: "duo",
+                    description: "Monotron model to play ('duo' for dual-oscillator X-MOD, 'delay' for space echo).",
+                },
+            },
+        },
+    },
+    {
         name: "get_current_state",
         description:
             "Read back the complete operational state of the rack: active transport status, tempo, mode, TB-303 grid and sound settings, Moog drone status, and sampler sequence information.",
