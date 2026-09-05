@@ -223,8 +223,8 @@ const model_context_protocol_tool_definitions_list = [
             properties: {
                 instrument_name: {
                     type: "string",
-                    enum: ["303", "moog", "monotron", "sampler"],
-                    description: "Target instrument module name.",
+                    enum: ["303", "moog", "monotron", "sampler", "pedal"],
+                    description: "Target instrument module or effect pedals.",
                 },
                 param_name: {
                     type: "string",

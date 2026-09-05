@@ -159,6 +159,26 @@
                         window.SamplerEngine.patternIndex = parseInt(target_parameter_value, 10);
                     }
                     execution_result_payload = { success: true, instrument: "sampler", param: target_parameter_name, value: target_parameter_value };
+                } else if ((target_instrument_name === "pedal" || target_instrument_name === "pedals") && window.PedalBoard) {
+                    // WHAT: Handles pedal enable toggles and parameter adjustments.
+                    // WHY:  Allows external agents to engage overdrive, delay, phaser, chorus, reverb, and tweak their parameters.
+                    const parameter_tokens = target_parameter_name.split(":");
+                    const pedal_identifier_string = parameter_tokens[0];
+                    const specific_attribute_name = parameter_tokens[1] || "enabled";
+
+                    if (specific_attribute_name === "enabled") {
+                        const should_enable = Boolean(target_parameter_value);
+                        window.PedalBoard.setPedalEnabled(pedal_identifier_string, should_enable);
+                        const checkbox_element = document.getElementById(`pedal-${pedal_identifier_string}`);
+                        if (checkbox_element) checkbox_element.checked = should_enable;
+                    } else {
+                        const numeric_parameter_value = parseFloat(target_parameter_value);
+                        window.PedalBoard.setPedalParam(pedal_identifier_string, specific_attribute_name, numeric_parameter_value);
+                        const pedal_row_element = document.querySelector(`.pedal-row[data-pedal="${pedal_identifier_string}"]`);
+                        const slider_element = pedal_row_element?.querySelector(`.pedal-param-slider[data-param="${specific_attribute_name}"]`);
+                        if (slider_element) slider_element.value = numeric_parameter_value;
+                    }
+                    execution_result_payload = { success: true, pedal: pedal_identifier_string, param: specific_attribute_name, value: target_parameter_value };
                 } else {
                     execution_result_payload = { success: false, error: `Instrument '${target_instrument_name}' not found or not initialized.` };
                 }
