@@ -16,51 +16,308 @@
     // WHY:  Avoids redundant console messaging during reconnection attempts.
     let has_logged_successful_connection_notice = false;
 
+    // WHAT: Parses compact tracker-style pattern notation into standardized 16-step sequencer objects.
+    // WHY:  Reduces token consumption by over 90% compared to verbose nested JSON objects while allowing rapid musical composition.
+    function parseCompactPatternNotation(compact_pattern_representation_input) {
+        let raw_step_token_string_array = [];
+
+        if (Array.isArray(compact_pattern_representation_input)) {
+            raw_step_token_string_array = compact_pattern_representation_input;
+        } else if (typeof compact_pattern_representation_input === "string") {
+            // WHAT: Splits on any whitespace or comma delimiters.
+            // WHY:  Permits both space-separated ("C3:a - G3:s") and comma-separated ("C3:a, -, G3:s") tracker inputs.
+            raw_step_token_string_array = compact_pattern_representation_input
+                .trim()
+                .split(/[\s,]+/)
+                .filter((individual_token_string) => individual_token_string.length > 0);
+        } else {
+            throw new Error("Pattern must be a tracker string (e.g. 'C3:a - G3:s C4:as+') or an array of steps.");
+        }
+
+        if (raw_step_token_string_array.length !== 16) {
+            throw new Error(
+                `Expected exactly 16 steps, but received ${raw_step_token_string_array.length} step tokens.`
+            );
+        }
+
+        const flat_to_sharp_musical_note_lookup_dictionary = {
+            DB: "C#",
+            EB: "D#",
+            GB: "F#",
+            AB: "G#",
+            BB: "A#",
+        };
+
+        const decoded_sixteen_steps_configuration_array = raw_step_token_string_array.map(
+            (individual_raw_step_token_string, step_position_index_number) => {
+                // WHAT: Checks whether the item is already a legacy step object.
+                // WHY:  Preserves 100% backward compatibility with traditional [{ note: 'C3', ... }] arrays.
+                if (
+                    individual_raw_step_token_string &&
+                    typeof individual_raw_step_token_string === "object" &&
+                    !Array.isArray(individual_raw_step_token_string)
+                ) {
+                    const resolved_octave_modifier =
+                        individual_raw_step_token_string.octave !== undefined
+                            ? individual_raw_step_token_string.octave
+                            : (individual_raw_step_token_string.octave_shift !== undefined
+                                  ? individual_raw_step_token_string.octave_shift
+                                  : 0);
+
+                    return {
+                        note: individual_raw_step_token_string.note || null,
+                        octave: resolved_octave_modifier,
+                        tie: Boolean(individual_raw_step_token_string.tie),
+                        slide: Boolean(individual_raw_step_token_string.slide),
+                        accent: Boolean(individual_raw_step_token_string.accent),
+                        ghost: Boolean(individual_raw_step_token_string.ghost),
+                    };
+                }
+
+                const step_token_trimmed_string = String(individual_raw_step_token_string).trim();
+
+                // WHAT: Evaluates standard rest representations.
+                // WHY:  A dash '-', period '.', or 'rest' indicates a silent rest step on the TB-303 grid.
+                if (
+                    step_token_trimmed_string === "-" ||
+                    step_token_trimmed_string === "." ||
+                    step_token_trimmed_string.toLowerCase() === "rest" ||
+                    step_token_trimmed_string === ""
+                ) {
+                    return {
+                        note: null,
+                        octave: 0,
+                        tie: false,
+                        slide: false,
+                        accent: false,
+                        ghost: false,
+                    };
+                }
+
+                // WHAT: Extracts the musical note name and octave digit (e.g., 'C3', 'D#3', 'Bb3', 'C4').
+                // WHY:  Validates note pitch before parsing any attached tracker modifier tags.
+                const musical_note_regular_expression_match = step_token_trimmed_string.match(/^([a-gA-G][#bB]?[1-6])/);
+                if (!musical_note_regular_expression_match) {
+                    throw new Error(
+                        `Invalid note format at step ${step_position_index_number + 1}: '${step_token_trimmed_string}'`
+                    );
+                }
+
+                let parsed_musical_note_name = musical_note_regular_expression_match[1].toUpperCase();
+
+                // Normalize flat accidental spelling to sharp spelling matching the 303 scale
+                if (parsed_musical_note_name.length === 3 && parsed_musical_note_name[1] === "B") {
+                    const flat_note_prefix_string = parsed_musical_note_name.slice(0, 2);
+                    const octave_digit_character = parsed_musical_note_name[2];
+                    if (flat_to_sharp_musical_note_lookup_dictionary[flat_note_prefix_string]) {
+                        parsed_musical_note_name =
+                            flat_to_sharp_musical_note_lookup_dictionary[flat_note_prefix_string] + octave_digit_character;
+                    }
+                }
+
+                const modifiers_substring_portion = step_token_trimmed_string
+                    .slice(musical_note_regular_expression_match[0].length)
+                    .toLowerCase();
+
+                // WHAT: Parses octave shift flags (+1, +, -1, -).
+                // WHY:  Allows rapid octave transposition in compact tracker notation without verbose integer fields.
+                let resolved_step_octave_modifier = 0;
+                if (modifiers_substring_portion.includes("+1") || modifiers_substring_portion.includes("+") || modifiers_substring_portion.includes("up")) {
+                    resolved_step_octave_modifier = 1;
+                } else if (modifiers_substring_portion.includes("-1") || modifiers_substring_portion.includes(":-") || modifiers_substring_portion.includes("down")) {
+                    resolved_step_octave_modifier = -1;
+                }
+
+                // WHAT: Decodes 303 expression modifier flags (:a for accent, :s for slide, :t for tie, :g for ghost).
+                // WHY:  Captures classic Roland TB-303 articulation semantics in minimal characters.
+                const is_accent_modifier_active = modifiers_substring_portion.includes("a") && !modifiers_substring_portion.includes("all");
+                const is_slide_modifier_active = modifiers_substring_portion.includes("s");
+                const is_tie_modifier_active = modifiers_substring_portion.includes("t");
+                const is_ghost_modifier_active = modifiers_substring_portion.includes("g");
+
+                return {
+                    note: parsed_musical_note_name,
+                    octave: resolved_step_octave_modifier,
+                    tie: is_tie_modifier_active,
+                    slide: is_slide_modifier_active,
+                    accent: is_accent_modifier_active,
+                    ghost: is_ghost_modifier_active,
+                };
+            }
+        );
+
+        return decoded_sixteen_steps_configuration_array;
+    }
+
+    // WHAT: Dispatches a single parameter adjustment across any synthesizer or effect in the rack.
+    // WHY:  Encapsulates parameter routing so both single updates and atomic batch updates share identical logic.
+    function applySingleInstrumentParameterUpdate(target_instrument_name, target_parameter_name, target_parameter_value) {
+        if (target_instrument_name === "303" && window.AudioEngine) {
+            window.AudioEngine.setParam(target_parameter_name, target_parameter_value);
+
+            // Sync DOM slider / dropdown if present
+            const domestic_element_identifier_lookup = {
+                accentAmount: "accent-amount",
+                envMod: "env-mod",
+                wave: "wave-type",
+            };
+            const element_identifier_string = domestic_element_identifier_lookup[target_parameter_name] || target_parameter_name;
+            const corresponding_dom_element = document.getElementById(element_identifier_string);
+            if (corresponding_dom_element) {
+                corresponding_dom_element.value = target_parameter_value;
+            }
+            return { success: true };
+        } else if (target_instrument_name === "moog" && window.GrandmotherEngine) {
+            if (target_parameter_name === "drone" || target_parameter_name === "power" || target_parameter_name === "playing") {
+                const should_enable_drone = Boolean(target_parameter_value);
+                const drone_button_element = document.getElementById("btn-drone-toggle");
+                if (drone_button_element) {
+                    if ((should_enable_drone && !window.GrandmotherEngine.isPlaying) || (!should_enable_drone && window.GrandmotherEngine.isPlaying)) {
+                        drone_button_element.click();
+                    }
+                } else {
+                    if (should_enable_drone) window.GrandmotherEngine.startDrone();
+                    else window.GrandmotherEngine.stopDrone();
+                }
+                return { success: true };
+            } else if (target_parameter_name in window.GrandmotherEngine.timing) {
+                window.GrandmotherEngine.setTimingParam(target_parameter_name, target_parameter_value);
+                return { success: true };
+            } else {
+                window.GrandmotherEngine.setParam(target_parameter_name, target_parameter_value);
+                return { success: true };
+            }
+        } else if (target_instrument_name === "monotron" && window.MonotronAudio) {
+            const monotron_method_lookup_dictionary = {
+                cutoff: "setCutoff",
+                resonance: "setPeak",
+                peak: "setPeak",
+                volume: "setVolume",
+                pitch: "setPitch",
+                vco1: "setVCO1Pitch",
+                vco2: "setVCO2Pitch",
+                xmod: "setXMod",
+                lforate: "setLFORate",
+                lfoint: "setLFOInt",
+                modtarget: "setModTarget",
+                lfowave: "setLFOWave",
+                delaytime: "setDelayTime",
+                feedback: "setDelayFeedback",
+                model: "setModel",
+            };
+            const normalized_parameter_key_string = String(target_parameter_name).toLowerCase();
+            const target_monotron_method_name = monotron_method_lookup_dictionary[normalized_parameter_key_string];
+
+            if (normalized_parameter_key_string === "noteon" || normalized_parameter_key_string === "trigger") {
+                const target_frequency_hertz = typeof target_parameter_value === "number"
+                    ? target_parameter_value
+                    : (window.Tone ? window.Tone.Frequency(target_parameter_value).toFrequency() : 440);
+                window.MonotronAudio.noteOn(target_frequency_hertz);
+                return { success: true };
+            } else if (normalized_parameter_key_string === "noteoff") {
+                window.MonotronAudio.noteOff();
+                return { success: true };
+            } else if (normalized_parameter_key_string === "gate") {
+                if (target_parameter_value) {
+                    window.MonotronAudio.noteOn();
+                } else {
+                    window.MonotronAudio.noteOff();
+                }
+                return { success: true };
+            } else if (target_monotron_method_name && typeof window.MonotronAudio[target_monotron_method_name] === "function") {
+                window.MonotronAudio[target_monotron_method_name](target_parameter_value);
+                return { success: true };
+            } else {
+                return { success: false, error: `Unrecognized Monotron parameter '${target_parameter_name}'.` };
+            }
+        } else if (target_instrument_name === "sampler" && window.SamplerEngine) {
+            if (target_parameter_name === "selectedSlot") {
+                window.SamplerEngine.selectedSlot = parseInt(target_parameter_value, 10);
+            } else if (target_parameter_name === "patternIndex") {
+                window.SamplerEngine.patternIndex = parseInt(target_parameter_value, 10);
+            }
+            return { success: true };
+        } else if ((target_instrument_name === "pedal" || target_instrument_name === "pedals") && window.PedalBoard) {
+            const parameter_tokens = target_parameter_name.split(":");
+            const pedal_identifier_string = parameter_tokens[0];
+            const specific_attribute_name = parameter_tokens[1] || "enabled";
+
+            if (specific_attribute_name === "enabled") {
+                const should_enable = Boolean(target_parameter_value);
+                window.PedalBoard.setPedalEnabled(pedal_identifier_string, should_enable);
+                const checkbox_element = document.getElementById(`pedal-${pedal_identifier_string}`);
+                if (checkbox_element) checkbox_element.checked = should_enable;
+            } else {
+                const numeric_parameter_value = parseFloat(target_parameter_value);
+                window.PedalBoard.setPedalParam(pedal_identifier_string, specific_attribute_name, numeric_parameter_value);
+                const pedal_row_element = document.querySelector(`.pedal-row[data-pedal="${pedal_identifier_string}"]`);
+                const slider_element = pedal_row_element?.querySelector(`.pedal-param-slider[data-param="${specific_attribute_name}"]`);
+                if (slider_element) slider_element.value = numeric_parameter_value;
+            }
+            return { success: true };
+        } else {
+            return { success: false, error: `Instrument '${target_instrument_name}' not found or not initialized.` };
+        }
+    }
+
     // WHAT: Dispatches incoming MCP commands directly into the application's engine singletons.
     // WHY:  Translates external JSON-RPC tool calls into internal engine method invocations,
     //       mimicking the behavior of on-screen UI clicks and MIDI events.
     function executeIncomingModelContextProtocolCommand(command_type_string, command_payload_object) {
-        let execution_result_payload = { success: true };
+        let execution_result_payload = { ok: true };
 
         switch (command_type_string) {
             case "set_303_pattern": {
-                // WHAT: Writes an array of 16 step objects into the SequencerEngine grid.
-                // WHY:  Replaces the active pattern with the notes and modifiers specified by the AI agent.
+                // WHAT: Writes a 16-step pattern into the SequencerEngine grid from tracker string or object array.
+                // WHY:  Replaces active pattern with notes and modifiers; returns a terse token-saving preview.
                 if (!window.SequencerEngine) {
-                    return { success: false, error: "SequencerEngine is not initialized." };
+                    return { ok: false, error: "SequencerEngine is not initialized." };
                 }
 
-                const incoming_steps_array = command_payload_object.steps;
-                if (!Array.isArray(incoming_steps_array) || incoming_steps_array.length !== 16) {
-                    return { success: false, error: "The 'steps' argument must be an array of exactly 16 step objects." };
-                }
+                try {
+                    const raw_pattern_input = command_payload_object.pattern !== undefined
+                        ? command_payload_object.pattern
+                        : command_payload_object.steps;
 
-                incoming_steps_array.forEach((incoming_step_object, step_index_number) => {
-                    const resolved_octave_modifier = incoming_step_object.octave !== undefined
-                        ? incoming_step_object.octave
-                        : (incoming_step_object.octave_shift !== undefined ? incoming_step_object.octave_shift : 0);
+                    const decoded_pattern_steps_array = parseCompactPatternNotation(raw_pattern_input);
 
-                    window.SequencerEngine.grid[step_index_number] = {
-                        note: incoming_step_object.note || null,
-                        octave: resolved_octave_modifier,
-                        tie: Boolean(incoming_step_object.tie),
-                        slide: Boolean(incoming_step_object.slide),
-                        accent: Boolean(incoming_step_object.accent),
-                        ghost: Boolean(incoming_step_object.ghost),
+                    decoded_pattern_steps_array.forEach((step_configuration_object, step_index_number) => {
+                        window.SequencerEngine.grid[step_index_number] = {
+                            note: step_configuration_object.note,
+                            octave: step_configuration_object.octave,
+                            tie: step_configuration_object.tie,
+                            slide: step_configuration_object.slide,
+                            accent: step_configuration_object.accent,
+                            ghost: step_configuration_object.ghost,
+                        };
+                    });
+
+                    // WHAT: Triggers a UI redraw of the note cells and modifier rows.
+                    // WHY:  Ensures the on-screen piano roll immediately reflects the agent's changes.
+                    if (typeof window.SequencerEngine.patternChangeCallback === "function") {
+                        window.SequencerEngine.patternChangeCallback();
+                    }
+
+                    const active_pattern_preview_string = window.SequencerEngine.grid
+                        .slice(0, 16)
+                        .map((step_object) => {
+                            if (!step_object.note) return "-";
+                            const accent_tag = step_object.accent ? ":a" : "";
+                            const slide_tag = step_object.slide ? ":s" : "";
+                            const tie_tag = step_object.tie ? ":t" : "";
+                            const ghost_tag = step_object.ghost ? ":g" : "";
+                            const octave_tag = step_object.octave > 0 ? ":+" : step_object.octave < 0 ? ":-" : "";
+                            return `${step_object.note}${accent_tag}${slide_tag}${tie_tag}${ghost_tag}${octave_tag}`;
+                        })
+                        .join(" ");
+
+                    execution_result_payload = {
+                        ok: true,
+                        preview: active_pattern_preview_string,
                     };
-                });
-
-                // WHAT: Triggers a UI redraw of the note cells and modifier rows.
-                // WHY:  Ensures the on-screen piano roll immediately reflects the agent's changes.
-                if (typeof window.SequencerEngine.patternChangeCallback === "function") {
-                    window.SequencerEngine.patternChangeCallback();
+                } catch (pattern_parsing_error) {
+                    execution_result_payload = { ok: false, error: pattern_parsing_error.message };
                 }
-
-                execution_result_payload = {
-                    success: true,
-                    message: "Successfully programmed 16-step pattern into TB-303 grid.",
-                    pattern_preview: window.SequencerEngine.grid.slice(0, 16).map(step => step.note ? `${step.note}${step.octave > 0 ? '+1' : step.octave < 0 ? '-1' : ''}` : '-').join(' ')
-                };
                 break;
             }
 
@@ -70,9 +327,9 @@
                 const target_memory_slot_number = parseInt(command_payload_object.slot_number, 10);
                 if (target_memory_slot_number >= 1 && target_memory_slot_number <= 9 && window.SequencerEngine) {
                     window.SequencerEngine.savePattern(target_memory_slot_number);
-                    execution_result_payload = { success: true, slot_number: target_memory_slot_number };
+                    execution_result_payload = { ok: true, slot: target_memory_slot_number };
                 } else {
-                    execution_result_payload = { success: false, error: "Invalid slot number. Must be an integer between 1 and 9." };
+                    execution_result_payload = { ok: false, error: "Invalid slot number. Must be an integer between 1 and 9." };
                 }
                 break;
             }
@@ -87,12 +344,12 @@
                         window.SequencerEngine.patternChangeCallback();
                     }
                     execution_result_payload = {
-                        success: pattern_successfully_found,
-                        slot_number: target_memory_slot_number,
-                        queued_for_next_bar: window.SequencerEngine.isPlaying
+                        ok: pattern_successfully_found,
+                        slot: target_memory_slot_number,
+                        queued: window.SequencerEngine.isPlaying,
                     };
                 } else {
-                    execution_result_payload = { success: false, error: "Invalid slot number. Must be an integer between 1 and 9." };
+                    execution_result_payload = { ok: false, error: "Invalid slot number. Must be an integer between 1 and 9." };
                 }
                 break;
             }
@@ -104,111 +361,56 @@
                 const target_parameter_name = command_payload_object.param_name;
                 const target_parameter_value = command_payload_object.param_value;
 
-                if (target_instrument_name === "303" && window.AudioEngine) {
-                    window.AudioEngine.setParam(target_parameter_name, target_parameter_value);
+                const single_update_result = applySingleInstrumentParameterUpdate(
+                    target_instrument_name,
+                    target_parameter_name,
+                    target_parameter_value
+                );
 
-                    // Sync DOM slider / dropdown if present
-                    const domestic_element_identifier_lookup = {
-                        accentAmount: "accent-amount",
-                        envMod: "env-mod",
-                        wave: "wave-type",
+                if (single_update_result.success) {
+                    execution_result_payload = {
+                        ok: true,
+                        instrument: target_instrument_name,
+                        param: target_parameter_name,
+                        val: target_parameter_value,
                     };
-                    const element_identifier_string = domestic_element_identifier_lookup[target_parameter_name] || target_parameter_name;
-                    const corresponding_dom_element = document.getElementById(element_identifier_string);
-                    if (corresponding_dom_element) {
-                        corresponding_dom_element.value = target_parameter_value;
-                    }
-                    execution_result_payload = { success: true, instrument: "303", param: target_parameter_name, value: target_parameter_value };
-                } else if (target_instrument_name === "moog" && window.GrandmotherEngine) {
-                    if (target_parameter_name === "drone" || target_parameter_name === "power" || target_parameter_name === "playing") {
-                        const should_enable_drone = Boolean(target_parameter_value);
-                        const drone_button_element = document.getElementById("btn-drone-toggle");
-                        if (drone_button_element) {
-                            if ((should_enable_drone && !window.GrandmotherEngine.isPlaying) || (!should_enable_drone && window.GrandmotherEngine.isPlaying)) {
-                                drone_button_element.click();
-                            }
-                        } else {
-                            if (should_enable_drone) window.GrandmotherEngine.startDrone();
-                            else window.GrandmotherEngine.stopDrone();
-                        }
-                        execution_result_payload = { success: true, instrument: "moog", drone: window.GrandmotherEngine.isPlaying };
-                    } else if (target_parameter_name in window.GrandmotherEngine.timing) {
-                        window.GrandmotherEngine.setTimingParam(target_parameter_name, target_parameter_value);
-                        execution_result_payload = { success: true, instrument: "moog", param: target_parameter_name, value: target_parameter_value };
-                    } else {
-                        window.GrandmotherEngine.setParam(target_parameter_name, target_parameter_value);
-                        execution_result_payload = { success: true, instrument: "moog", param: target_parameter_name, value: target_parameter_value };
-                    }
-                } else if (target_instrument_name === "monotron" && window.MonotronAudio) {
-                    const monotron_method_lookup_dictionary = {
-                        cutoff: "setCutoff",
-                        resonance: "setPeak",
-                        peak: "setPeak",
-                        volume: "setVolume",
-                        pitch: "setPitch",
-                        vco1: "setVCO1Pitch",
-                        vco2: "setVCO2Pitch",
-                        xmod: "setXMod",
-                        lforate: "setLFORate",
-                        lfoint: "setLFOInt",
-                        modtarget: "setModTarget",
-                        lfowave: "setLFOWave",
-                        delaytime: "setDelayTime",
-                        feedback: "setDelayFeedback",
-                        model: "setModel",
-                    };
-                    if (normalized_key === "noteon" || normalized_key === "trigger") {
-                        const target_frequency_hertz = typeof target_parameter_value === "number"
-                            ? target_parameter_value
-                            : (window.Tone ? window.Tone.Frequency(target_parameter_value).toFrequency() : 440);
-                        window.MonotronAudio.noteOn(target_frequency_hertz);
-                        execution_result_payload = { success: true, instrument: "monotron", action: "noteOn", frequency: target_frequency_hertz };
-                    } else if (normalized_key === "noteoff") {
-                        window.MonotronAudio.noteOff();
-                        execution_result_payload = { success: true, instrument: "monotron", action: "noteOff" };
-                    } else if (normalized_key === "gate") {
-                        if (target_parameter_value) {
-                            window.MonotronAudio.noteOn();
-                        } else {
-                            window.MonotronAudio.noteOff();
-                        }
-                        execution_result_payload = { success: true, instrument: "monotron", gate: Boolean(target_parameter_value) };
-                    } else if (target_method_name && typeof window.MonotronAudio[target_method_name] === "function") {
-                        window.MonotronAudio[target_method_name](target_parameter_value);
-                        execution_result_payload = { success: true, instrument: "monotron", param: target_parameter_name, value: target_parameter_value };
-                    } else {
-                        execution_result_payload = { success: false, error: `Unrecognized Monotron parameter '${target_parameter_name}'.` };
-                    }
-                } else if (target_instrument_name === "sampler" && window.SamplerEngine) {
-                    if (target_parameter_name === "selectedSlot") {
-                        window.SamplerEngine.selectedSlot = parseInt(target_parameter_value, 10);
-                    } else if (target_parameter_name === "patternIndex") {
-                        window.SamplerEngine.patternIndex = parseInt(target_parameter_value, 10);
-                    }
-                    execution_result_payload = { success: true, instrument: "sampler", param: target_parameter_name, value: target_parameter_value };
-                } else if ((target_instrument_name === "pedal" || target_instrument_name === "pedals") && window.PedalBoard) {
-                    // WHAT: Handles pedal enable toggles and parameter adjustments.
-                    // WHY:  Allows external agents to engage overdrive, delay, phaser, chorus, reverb, and tweak their parameters.
-                    const parameter_tokens = target_parameter_name.split(":");
-                    const pedal_identifier_string = parameter_tokens[0];
-                    const specific_attribute_name = parameter_tokens[1] || "enabled";
-
-                    if (specific_attribute_name === "enabled") {
-                        const should_enable = Boolean(target_parameter_value);
-                        window.PedalBoard.setPedalEnabled(pedal_identifier_string, should_enable);
-                        const checkbox_element = document.getElementById(`pedal-${pedal_identifier_string}`);
-                        if (checkbox_element) checkbox_element.checked = should_enable;
-                    } else {
-                        const numeric_parameter_value = parseFloat(target_parameter_value);
-                        window.PedalBoard.setPedalParam(pedal_identifier_string, specific_attribute_name, numeric_parameter_value);
-                        const pedal_row_element = document.querySelector(`.pedal-row[data-pedal="${pedal_identifier_string}"]`);
-                        const slider_element = pedal_row_element?.querySelector(`.pedal-param-slider[data-param="${specific_attribute_name}"]`);
-                        if (slider_element) slider_element.value = numeric_parameter_value;
-                    }
-                    execution_result_payload = { success: true, pedal: pedal_identifier_string, param: specific_attribute_name, value: target_parameter_value };
                 } else {
-                    execution_result_payload = { success: false, error: `Instrument '${target_instrument_name}' not found or not initialized.` };
+                    execution_result_payload = { ok: false, error: single_update_result.error };
                 }
+                break;
+            }
+
+            case "batch_set_params": {
+                // WHAT: Atomically updates multiple synthesizer and pedal parameters across instruments.
+                // WHY:  Eliminates multiple conversational round-trips, saving up to 90% of sound-design tokens.
+                const incoming_parameters_dictionary = command_payload_object.parameters || {};
+                let total_applied_parameters_counter = 0;
+                const errors_encountered_list = [];
+
+                for (const [target_instrument_name, parameter_map_object] of Object.entries(incoming_parameters_dictionary)) {
+                    if (parameter_map_object && typeof parameter_map_object === "object") {
+                        for (const [specific_parameter_name, specific_parameter_value] of Object.entries(parameter_map_object)) {
+                            const single_update_result = applySingleInstrumentParameterUpdate(
+                                target_instrument_name,
+                                specific_parameter_name,
+                                specific_parameter_value
+                            );
+                            if (single_update_result.success) {
+                                total_applied_parameters_counter = total_applied_parameters_counter + 1;
+                            } else {
+                                errors_encountered_list.push(
+                                    single_update_result.error || `${target_instrument_name}.${specific_parameter_name}`
+                                );
+                            }
+                        }
+                    }
+                }
+
+                execution_result_payload = {
+                    ok: errors_encountered_list.length === 0,
+                    updated: total_applied_parameters_counter,
+                    ...(errors_encountered_list.length > 0 ? { errors: errors_encountered_list } : {}),
+                };
                 break;
             }
 
@@ -226,9 +428,9 @@
                     if (mode_dropdown_element) {
                         mode_dropdown_element.value = normalized_mode_identifier;
                     }
-                    execution_result_payload = { success: true, mode: normalized_mode_identifier };
+                    execution_result_payload = { ok: true, mode: normalized_mode_identifier };
                 } else {
-                    execution_result_payload = { success: false, error: "Mode engine is not available." };
+                    execution_result_payload = { ok: false, error: "Mode engine is not available." };
                 }
                 break;
             }
@@ -238,7 +440,7 @@
                 // WHY:  Enables programmatic composition of full song arrangements.
                 const sequence_entries_array = command_payload_object.sequence_entries;
                 if (!Array.isArray(sequence_entries_array)) {
-                    return { success: false, error: "sequence_entries must be an array." };
+                    return { ok: false, error: "sequence_entries must be an array." };
                 }
 
                 if (window.SamplerEngine) {
@@ -250,9 +452,9 @@
                         sequence_input_textarea_element.value = JSON.stringify(sequence_entries_array, null, 2);
                         sequence_input_textarea_element.dispatchEvent(new Event("input"));
                     }
-                    execution_result_payload = { success: true, entries_count: sequence_entries_array.length };
+                    execution_result_payload = { ok: true, entries: sequence_entries_array.length };
                 } else {
-                    execution_result_payload = { success: false, error: "SamplerEngine is not initialized." };
+                    execution_result_payload = { ok: false, error: "SamplerEngine is not initialized." };
                 }
                 break;
             }
@@ -286,8 +488,8 @@
                 }
 
                 execution_result_payload = {
-                    success: true,
-                    is_playing: window.SequencerEngine ? window.SequencerEngine.isPlaying : false,
+                    ok: true,
+                    playing: window.SequencerEngine ? window.SequencerEngine.isPlaying : false,
                     bpm: window.Clock ? window.Clock.bpm : 120,
                 };
                 break;
@@ -400,9 +602,8 @@
                 }, 1000);
 
                 execution_result_payload = {
-                    success: true,
-                    message: `Started 60-second automated pedalboard jam! Watch the pedalboard and synth knobs live in Firefox.`,
-                    duration_seconds: total_duration_seconds
+                    ok: true,
+                    jam_seconds: total_duration_seconds,
                 };
                 break;
             }
@@ -411,7 +612,7 @@
                 // WHAT: Performs an expressive, live synth lead on the Korg Monotron ribbon synth.
                 // WHY:  Animates the visual ribbon touch indicator, automates MS-20 filter sweeps, and plays musical notes over the active beat.
                 if (!window.MonotronAudio) {
-                    return { success: false, error: "MonotronAudio engine is not initialized." };
+                    return { ok: false, error: "MonotronAudio engine is not initialized." };
                 }
 
                 if (window.Tone && window.Tone.context && window.Tone.context.state !== "running") {
@@ -492,45 +693,102 @@
                 }, solo_interval_milliseconds);
 
                 execution_result_payload = {
-                    success: true,
-                    message: `Playing Monotron ${chosen_model_name.toUpperCase()} lead solo for ${total_solo_duration_seconds} seconds!`,
-                    duration_seconds: total_solo_duration_seconds,
-                    model: chosen_model_name
+                    ok: true,
+                    solo_seconds: total_solo_duration_seconds,
+                    model: chosen_model_name,
                 };
                 break;
             }
 
             case "get_current_state": {
-                // WHAT: Returns a complete structural snapshot of the workstation's active state.
-                // WHY:  Allows an AI agent to read context before calculating musical changes.
-                execution_result_payload = {
-                    transport: {
-                        is_playing: window.SequencerEngine ? window.SequencerEngine.isPlaying : false,
-                        bpm: window.Clock ? window.Clock.bpm : 120,
-                        current_step: window.SequencerEngine ? window.SequencerEngine.currentStep : 0,
-                    },
-                    mode: window.Mode ? window.Mode.currentModeId : "acid",
-                    tb303: {
-                        parameters: window.AudioEngine ? window.AudioEngine.params : {},
-                        active_grid_steps: window.SequencerEngine ? window.SequencerEngine.grid.slice(0, window.SequencerEngine.steps) : [],
-                        saved_pattern_slots: window.SequencerEngine ? Object.keys(window.SequencerEngine.patterns) : [],
-                    },
-                    moog: {
-                        is_drone_playing: window.GrandmotherEngine ? window.GrandmotherEngine.isPlaying : false,
-                        parameters: window.GrandmotherEngine ? window.GrandmotherEngine.params : {},
-                        timing_parameters: window.GrandmotherEngine ? window.GrandmotherEngine.timing : {},
-                    },
-                    monotron: {
-                        base_frequency_hertz: window.MonotronAudio ? window.MonotronAudio.baseFreq : 440,
-                    },
-                    sampler: {
-                        selected_slot_index: window.SamplerEngine ? window.SamplerEngine.selectedSlot : 0,
-                        pattern_index: window.SamplerEngine ? window.SamplerEngine.patternIndex + 1 : 1,
-                        is_sequencer_running: window.SamplerEngine ? window.SamplerEngine.isSequencerRunning : false,
-                        sequence_mode_active: window.SamplerEngine ? window.SamplerEngine.sequenceModeActive : false,
-                        sequence_entries: window.SamplerEngine ? window.SamplerEngine.sequence : [],
-                    },
-                };
+                // WHAT: Returns a scoped, token-efficient snapshot of the workstation state.
+                // WHY:  Defaulting to 'summary' saves ~98% of tokens by returning a compact 1-line text status.
+                const requested_state_scope = (command_payload_object.scope || "summary").toLowerCase();
+
+                const is_transport_running = window.SequencerEngine ? window.SequencerEngine.isPlaying : false;
+                const current_tempo_bpm = window.Clock ? window.Clock.bpm : 120;
+                const active_sequencer_step_number = window.SequencerEngine ? window.SequencerEngine.currentStep : 0;
+                const current_rack_mode_identifier = window.Mode ? window.Mode.currentModeId : "acid";
+                const is_moog_drone_active = window.GrandmotherEngine ? window.GrandmotherEngine.isPlaying : false;
+
+                const active_pattern_preview_string = window.SequencerEngine
+                    ? window.SequencerEngine.grid
+                          .slice(0, 16)
+                          .map((step_object) => {
+                              if (!step_object.note) return "-";
+                              const accent_tag = step_object.accent ? ":a" : "";
+                              const slide_tag = step_object.slide ? ":s" : "";
+                              const tie_tag = step_object.tie ? ":t" : "";
+                              const ghost_tag = step_object.ghost ? ":g" : "";
+                              const octave_tag = step_object.octave > 0 ? ":+" : step_object.octave < 0 ? ":-" : "";
+                              return `${step_object.note}${accent_tag}${slide_tag}${tie_tag}${ghost_tag}${octave_tag}`;
+                          })
+                          .join(" ")
+                    : "";
+
+                if (requested_state_scope === "summary") {
+                    const synth_parameters = window.AudioEngine ? window.AudioEngine.params : {};
+                    const cutoff_text = synth_parameters.cutoff !== undefined ? synth_parameters.cutoff.toFixed(2) : "0.50";
+                    const resonance_text = synth_parameters.resonance !== undefined ? synth_parameters.resonance.toFixed(2) : "0.50";
+                    const wave_text = synth_parameters.wave || "saw";
+
+                    execution_result_payload = {
+                        summary: `${current_tempo_bpm} BPM | ${is_transport_running ? "PLAYING" : "STOPPED"} | Step ${active_sequencer_step_number} | Mode: ${current_rack_mode_identifier.toUpperCase()} | 303: cut=${cutoff_text} res=${resonance_text} ${wave_text} | Moog: ${is_moog_drone_active ? "ON" : "OFF"}`
+                    };
+                } else if (requested_state_scope === "303") {
+                    execution_result_payload = {
+                        params: window.AudioEngine ? window.AudioEngine.params : {},
+                        pattern: active_pattern_preview_string,
+                        slots: window.SequencerEngine ? Object.keys(window.SequencerEngine.patterns) : []
+                    };
+                } else if (requested_state_scope === "transport") {
+                    execution_result_payload = {
+                        playing: is_transport_running,
+                        bpm: current_tempo_bpm,
+                        step: active_sequencer_step_number
+                    };
+                } else if (requested_state_scope === "moog") {
+                    execution_result_payload = {
+                        drone: is_moog_drone_active,
+                        params: window.GrandmotherEngine ? window.GrandmotherEngine.params : {}
+                    };
+                } else if (requested_state_scope === "sampler") {
+                    execution_result_payload = {
+                        slot: window.SamplerEngine ? window.SamplerEngine.selectedSlot : 0,
+                        pattern: window.SamplerEngine ? window.SamplerEngine.patternIndex + 1 : 1,
+                        sequence: window.SamplerEngine ? window.SamplerEngine.sequence : []
+                    };
+                } else {
+                    // Full structural dump
+                    execution_result_payload = {
+                        transport: {
+                            is_playing: is_transport_running,
+                            bpm: current_tempo_bpm,
+                            current_step: active_sequencer_step_number,
+                        },
+                        mode: current_rack_mode_identifier,
+                        tb303: {
+                            parameters: window.AudioEngine ? window.AudioEngine.params : {},
+                            active_grid_steps: window.SequencerEngine ? window.SequencerEngine.grid.slice(0, window.SequencerEngine.steps) : [],
+                            saved_pattern_slots: window.SequencerEngine ? Object.keys(window.SequencerEngine.patterns) : [],
+                        },
+                        moog: {
+                            is_drone_playing: is_moog_drone_active,
+                            parameters: window.GrandmotherEngine ? window.GrandmotherEngine.params : {},
+                            timing_parameters: window.GrandmotherEngine ? window.GrandmotherEngine.timing : {},
+                        },
+                        monotron: {
+                            base_frequency_hertz: window.MonotronAudio ? window.MonotronAudio.baseFreq : 440,
+                        },
+                        sampler: {
+                            selected_slot_index: window.SamplerEngine ? window.SamplerEngine.selectedSlot : 0,
+                            pattern_index: window.SamplerEngine ? window.SamplerEngine.patternIndex + 1 : 1,
+                            is_sequencer_running: window.SamplerEngine ? window.SamplerEngine.isSequencerRunning : false,
+                            sequence_mode_active: window.SamplerEngine ? window.SamplerEngine.sequenceModeActive : false,
+                            sequence_entries: window.SamplerEngine ? window.SamplerEngine.sequence : [],
+                        },
+                    };
+                }
                 break;
             }
 

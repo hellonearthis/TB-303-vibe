@@ -31,6 +31,76 @@ const browser_bridge_websocket_server = new WebSocketServer({
     port: browser_bridge_network_port_number,
 });
 
+// WHAT: Tracks whether the process has already initiated shutdown.
+// WHY:  Prevents race conditions or multiple shutdown sequences from colliding when multiple exit events fire simultaneously.
+let is_graceful_shutdown_already_in_progress = false;
+
+// WHAT: Gracefully shuts down all network listeners, client connections, and terminates the Node process.
+// WHY:  When the parent MCP client (Antigravity IDE, Claude Desktop, etc.) exits or closes its stdio stream,
+//       this function guarantees that port 8787 is immediately released and no orphaned background process is left running.
+function initiateGracefulServerShutdown(shutdown_trigger_reason_description) {
+    if (is_graceful_shutdown_already_in_progress) {
+        return;
+    }
+    is_graceful_shutdown_already_in_progress = true;
+
+    console.error(`Initiating graceful TB-303-vibe MCP server shutdown. Reason: ${shutdown_trigger_reason_description}`);
+
+    // WHAT: Establish a forced termination safety timeout of 1000 milliseconds.
+    // WHY:  If any socket handle hangs or fails to close promptly during teardown, this guarantees
+    //       that the Node.js operating system process definitely exits and does not linger as a zombie.
+    const forced_termination_safety_timeout_milliseconds = 1000;
+    const forced_termination_safety_timeout_handle = setTimeout(() => {
+        console.error("Forced termination safety timeout reached; exiting Node.js process immediately.");
+        process.exit(0);
+    }, forced_termination_safety_timeout_milliseconds);
+
+    if (typeof forced_termination_safety_timeout_handle.unref === "function") {
+        forced_termination_safety_timeout_handle.unref();
+    }
+
+    // WHAT: Terminate all active browser WebSocket client connections.
+    // WHY:  Informs any connected browser tabs that the bridge is closing so their sockets reset cleanly.
+    if (browser_bridge_websocket_server && browser_bridge_websocket_server.clients) {
+        for (const active_connected_client_websocket of browser_bridge_websocket_server.clients) {
+            try {
+                active_connected_client_websocket.terminate();
+            } catch (socket_termination_error) {
+                console.error("Error terminating active browser client socket during shutdown:", socket_termination_error);
+            }
+        }
+    }
+
+    // WHAT: Closes the WebSocket server listening socket.
+    // WHY:  Immediately unbinds port 8787 so the operating system can reassign it without conflict.
+    if (browser_bridge_websocket_server) {
+        browser_bridge_websocket_server.close(() => {
+            console.error("WebSocket server listener on port 8787 successfully closed.");
+            process.exit(0);
+        });
+    } else {
+        process.exit(0);
+    }
+}
+
+// WHAT: Handles network listener errors on the WebSocket server itself (e.g. port already bound).
+// WHY:  If another process is already listening on port 8787, this prevents an unhandled exception crash
+//       and provides clear, actionable diagnostic guidance to the developer.
+browser_bridge_websocket_server.on("error", (websocket_server_network_error) => {
+    if (websocket_server_network_error.code === "EADDRINUSE") {
+        console.error(
+            `\n[PORT CONFLICT ERROR] Port ${browser_bridge_network_port_number} is already in use by another running process.\n` +
+            `This usually occurs if an earlier instance of 'mcp-server.js' was not closed cleanly.\n` +
+            `To resolve this, find the process holding port ${browser_bridge_network_port_number} ` +
+            `(e.g. run 'Get-NetTCPConnection -LocalPort ${browser_bridge_network_port_number}' in PowerShell) ` +
+            `and terminate it before restarting.\n`
+        );
+    } else {
+        console.error("WebSocket server encountered an unhandled network error:", websocket_server_network_error);
+    }
+    process.exit(1);
+});
+
 // WHAT: Holds a reference to the single active browser WebSocket connection.
 // WHY:  TB-303-vibe is designed as a single active studio workstation at a time.
 let active_connected_browser_websocket = null;
@@ -124,66 +194,42 @@ const model_context_protocol_tool_definitions_list = [
     {
         name: "set_303_pattern",
         description:
-            "Write a full 16-step pattern to the TB-303 sequencer grid. Each step " +
-            "may include a note (e.g. 'C3', 'D#3', 'G3', 'C4', or null for a rest), " +
-            "an octave modifier (-1, 0, or 1), and booleans for tie, slide, accent, and ghost.",
+            "Program the 16-step pattern. Accepts compact tracker string ('C3:a - G3:s C4:as+') or 16 step objects/strings. Modifiers: :a (accent), :s (slide), :t (tie), :g (ghost), :+ / :- (octave). '-' or '.' is rest.",
         inputSchema: {
             type: "object",
             properties: {
+                pattern: {
+                    type: "string",
+                    description: "Compact tracker string of 16 steps (e.g. 'C3:a - G3:s C4:as+ - F3 F#3:s G3:as - A#3:a G3:g C4:as+ C3 - D#3:s F3:a').",
+                },
                 steps: {
                     type: "array",
-                    minItems: 16,
-                    maxItems: 16,
-                    description: "An array containing exactly 16 step objects.",
+                    description: "Array of 16 step objects (with note, octave, slide, accent, tie, ghost) or token strings.",
                     items: {
-                        type: "object",
-                        properties: {
-                            note: {
-                                type: ["string", "null"],
-                                description: "Note name between C3 and C4 (e.g. 'C3', 'D#3', 'G3', 'C4'), or null for rest.",
-                            },
-                            octave: {
-                                type: "integer",
-                                enum: [-1, 0, 1],
-                                default: 0,
-                                description: "Octave shift relative to scale pitch (-1 for down, 0 for neutral, 1 for up).",
-                            },
-                            octave_shift: {
-                                type: "integer",
-                                enum: [-1, 0, 1],
-                                description: "Alias for octave.",
-                            },
-                            tie: {
-                                type: "boolean",
-                                default: false,
-                                description: "True to sustain the previous step's note into this step without retriggering.",
-                            },
-                            slide: {
-                                type: "boolean",
-                                default: false,
-                                description: "True to glide pitch into the following step (classic 303 portamento).",
-                            },
-                            accent: {
-                                type: "boolean",
-                                default: false,
-                                description: "True to increase note volume and envelope attack intensity (mutually exclusive with ghost).",
-                            },
-                            ghost: {
-                                type: "boolean",
-                                default: false,
-                                description: "True to attenuate note volume and cutoff depth (mutually exclusive with accent).",
-                            },
-                        },
+                        type: ["object", "string"],
                     },
                 },
             },
-            required: ["steps"],
+        },
+    },
+    {
+        name: "batch_set_params",
+        description:
+            "Atomically set multiple synth and pedal parameters in one request. Example: {'303': {'cutoff': 0.6, 'resonance': 0.8}, 'pedals': {'overdrive:enabled': true, 'overdrive:gain': 0.7}}.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                parameters: {
+                    type: "object",
+                    description: "Map of instrument/pedal names ('303', 'moog', 'monotron', 'sampler', 'pedals') to parameter objects.",
+                },
+            },
+            required: ["parameters"],
         },
     },
     {
         name: "save_pattern_to_slot",
-        description:
-            "Save the current TB-303 sequencer grid into one of the 9 pattern memory slots (1 to 9).",
+        description: "Save active grid to memory slot (1-9).",
         inputSchema: {
             type: "object",
             properties: {
@@ -191,7 +237,7 @@ const model_context_protocol_tool_definitions_list = [
                     type: "integer",
                     minimum: 1,
                     maximum: 9,
-                    description: "The memory slot number from 1 to 9.",
+                    description: "Memory slot number 1-9.",
                 },
             },
             required: ["slot_number"],
@@ -199,8 +245,7 @@ const model_context_protocol_tool_definitions_list = [
     },
     {
         name: "recall_pattern_from_slot",
-        description:
-            "Load a saved pattern slot (1 to 9) into the active grid. When playing, the pattern changes at the start of the next 16-step cycle.",
+        description: "Recall pattern from memory slot (1-9). Queues on next bar if playing.",
         inputSchema: {
             type: "object",
             properties: {
@@ -208,7 +253,7 @@ const model_context_protocol_tool_definitions_list = [
                     type: "integer",
                     minimum: 1,
                     maximum: 9,
-                    description: "The memory slot number to recall from (1 to 9).",
+                    description: "Memory slot number 1-9.",
                 },
             },
             required: ["slot_number"],
@@ -216,27 +261,22 @@ const model_context_protocol_tool_definitions_list = [
     },
     {
         name: "set_instrument_param",
-        description:
-            "Set a synthesizer or effect parameter on one of the four instruments in the rack (303, moog, monotron, or sampler).",
+        description: "Set a single synth or effect parameter across '303', 'moog', 'monotron', 'sampler', or 'pedals'. For multiple params, use batch_set_params instead.",
         inputSchema: {
             type: "object",
             properties: {
                 instrument_name: {
                     type: "string",
-                    enum: ["303", "moog", "monotron", "sampler", "pedal"],
-                    description: "Target instrument module or effect pedals.",
+                    enum: ["303", "moog", "monotron", "sampler", "pedals", "pedal"],
+                    description: "Target instrument or effect pedals.",
                 },
                 param_name: {
                     type: "string",
-                    description:
-                        "Parameter name. For 303: 'cutoff', 'resonance', 'envMod', 'decay', 'accentAmount', 'tuning', 'volume', 'wave' ('sawtooth'|'square'). " +
-                        "For moog: 'cutoff', 'resonance', 'reverb', 'volume', 'detune', 'noiseLevel', 'attack', 'decay', 'sustain', 'release', 'modWheel', 'modRate', 'modWave', 'modTarget', 'shRate', 'shDepth', 'clockMode'. " +
-                        "For monotron: 'cutoff', 'peak', 'volume', 'vco1', 'vco2', 'xmod', 'lforate', 'lfoint', 'modtarget', 'delaytime', 'feedback', 'model'. " +
-                        "For sampler: 'selectedSlot', 'patternIndex'.",
+                    description: "Parameter name (e.g. 'cutoff', 'resonance', 'wave', 'overdrive:gain').",
                 },
                 param_value: {
                     type: ["number", "string", "boolean"],
-                    description: "Normalized value (usually 0.0 to 1.0), enum string, or boolean.",
+                    description: "Target value (normalized 0.0-1.0, string, or boolean).",
                 },
             },
             required: ["instrument_name", "param_name", "param_value"],
@@ -244,15 +284,14 @@ const model_context_protocol_tool_definitions_list = [
     },
     {
         name: "set_mode",
-        description:
-            "Switch the workstation configuration mode between ACID (16 steps, 120 BPM, 303 focus) and DRUM & BASS (32 steps, 172 BPM, sampler focus).",
+        description: "Switch workstation mode between 'acid' (16 steps, 120 BPM) and 'dnb' (32 steps, 172 BPM).",
         inputSchema: {
             type: "object",
             properties: {
                 mode_name: {
                     type: "string",
                     enum: ["acid", "dnb", "drum_and_bass"],
-                    description: "The mode identifier to activate ('acid' or 'dnb').",
+                    description: "Mode identifier ('acid' or 'dnb').",
                 },
             },
             required: ["mode_name"],
@@ -260,45 +299,21 @@ const model_context_protocol_tool_definitions_list = [
     },
     {
         name: "set_pattern_sequence",
-        description:
-            "Program an arrangement of saved patterns into the KO-40 sampler sequence editor. Each entry can define pattern number, repeat count, semitone transpose, mute, and BPM override.",
+        description: "Program KO-40 sampler pattern arrangement with pattern index, repeat, transpose, mute, and bpm overrides.",
         inputSchema: {
             type: "object",
             properties: {
                 sequence_entries: {
                     type: "array",
-                    description: "Ordered array of sequence entry objects.",
+                    description: "Array of sequence objects: [{ pattern: 1, repeat: 2, transpose: 0, mute: false, bpm: 120 }].",
                     items: {
                         type: "object",
                         properties: {
-                            pattern: {
-                                type: "integer",
-                                minimum: 1,
-                                maximum: 16,
-                                description: "Pattern number (1 to 16).",
-                            },
-                            repeat: {
-                                type: "integer",
-                                minimum: 1,
-                                default: 1,
-                                description: "Number of times to loop this pattern before advancing.",
-                            },
-                            transpose: {
-                                type: "integer",
-                                default: 0,
-                                description: "Semitone transposition offset.",
-                            },
-                            mute: {
-                                type: "boolean",
-                                default: false,
-                                description: "Whether playback of this pattern entry is muted.",
-                            },
-                            bpm: {
-                                type: "integer",
-                                minimum: 60,
-                                maximum: 200,
-                                description: "Optional tempo override for this pattern entry.",
-                            },
+                            pattern: { type: "integer", minimum: 1, maximum: 16 },
+                            repeat: { type: "integer", minimum: 1, default: 1 },
+                            transpose: { type: "integer", default: 0 },
+                            mute: { type: "boolean", default: false },
+                            bpm: { type: "integer", minimum: 60, maximum: 200 },
                         },
                         required: ["pattern"],
                     },
@@ -309,29 +324,27 @@ const model_context_protocol_tool_definitions_list = [
     },
     {
         name: "transport_control",
-        description:
-            "Control playback transport (play, stop, or toggle) and optionally set the master tempo in BPM.",
+        description: "Control playback transport ('play', 'stop', 'toggle') and optional BPM tempo.",
         inputSchema: {
             type: "object",
             properties: {
                 action: {
                     type: "string",
                     enum: ["play", "stop", "toggle"],
-                    description: "Playback transport command to execute.",
+                    description: "Playback transport command.",
                 },
                 bpm: {
                     type: "number",
                     minimum: 60,
                     maximum: 200,
-                    description: "Master tempo in beats per minute.",
+                    description: "Master tempo in BPM (60-200).",
                 },
             },
         },
     },
     {
         name: "run_pedal_jam",
-        description:
-            "Launch a dynamic 60-second automated live performance that rhythmically sweeps overdrive, phaser, tape delay, chorus, reverb, and distortion pedals alongside filter sweeps and pattern rotations.",
+        description: "Launch automated 60s live jam sweeping pedals (overdrive, phaser, delay, chorus, reverb, distortion) and synth filters.",
         inputSchema: {
             type: "object",
             properties: {
@@ -340,15 +353,14 @@ const model_context_protocol_tool_definitions_list = [
                     minimum: 10,
                     maximum: 120,
                     default: 60,
-                    description: "Duration of the live pedal jam in seconds (default: 60).",
+                    description: "Duration in seconds.",
                 },
             },
         },
     },
     {
         name: "play_monotron",
-        description:
-            "Perform an expressive live solo or rhythmic arpeggio on the Korg Monotron analog ribbon synth with portamento pitch glides, MS-20 filter sweeps, and X-MOD modulation over the running 303 beat.",
+        description: "Perform live solo on Korg Monotron analog ribbon synth with filter sweeps and ribbon slides.",
         inputSchema: {
             type: "object",
             properties: {
@@ -357,24 +369,30 @@ const model_context_protocol_tool_definitions_list = [
                     minimum: 5,
                     maximum: 60,
                     default: 20,
-                    description: "Duration of the Monotron performance in seconds (default: 20).",
+                    description: "Duration in seconds.",
                 },
                 model: {
                     type: "string",
                     enum: ["duo", "delay", "classic"],
                     default: "duo",
-                    description: "Monotron model to play ('duo' for dual-oscillator X-MOD, 'delay' for space echo).",
+                    description: "Monotron model ('duo' or 'delay').",
                 },
             },
         },
     },
     {
         name: "get_current_state",
-        description:
-            "Read back the complete operational state of the rack: active transport status, tempo, mode, TB-303 grid and sound settings, Moog drone status, and sampler sequence information.",
+        description: "Read operational state. Defaults to a token-efficient 1-line summary (~25 tokens). Use scope for targeted data or 'all' for raw JSON.",
         inputSchema: {
             type: "object",
-            properties: {},
+            properties: {
+                scope: {
+                    type: "string",
+                    enum: ["summary", "303", "transport", "moog", "sampler", "all"],
+                    default: "summary",
+                    description: "Detail level: 'summary' (default, 1-line text status), '303', 'transport', 'moog', 'sampler', or 'all'.",
+                },
+            },
         },
     },
 ];
@@ -413,11 +431,22 @@ model_context_protocol_server_instance.setRequestHandler(CallToolRequestSchema, 
             requested_tool_arguments_object
         );
 
+        // WHAT: Formats tool response concisely, avoiding multi-line whitespace token bloat.
+        // WHY:  Returning raw strings or minified JSON prevents re-sending thousands of useless newline and indent tokens on every turn.
+        let formatted_response_text_content = "";
+        if (typeof browser_execution_response_payload === "string") {
+            formatted_response_text_content = browser_execution_response_payload;
+        } else if (browser_execution_response_payload && typeof browser_execution_response_payload.summary === "string") {
+            formatted_response_text_content = browser_execution_response_payload.summary;
+        } else {
+            formatted_response_text_content = JSON.stringify(browser_execution_response_payload);
+        }
+
         return {
             content: [
                 {
                     type: "text",
-                    text: JSON.stringify(browser_execution_response_payload, null, 2),
+                    text: formatted_response_text_content,
                 },
             ],
         };
@@ -440,3 +469,67 @@ const standard_input_output_server_transport = new StdioServerTransport();
 await model_context_protocol_server_instance.connect(standard_input_output_server_transport);
 
 console.error(`TB-303-vibe MCP server operational on stdio. Browser WebSocket bridge listening on ws://localhost:${browser_bridge_network_port_number}`);
+
+// WHAT: Attaches closure callback to the stdio transport and server instance.
+// WHY:  If the MCP client protocol layer closes gracefully, we trigger full server teardown.
+standard_input_output_server_transport.onclose = () => {
+    initiateGracefulServerShutdown("MCP StdioServerTransport reported connection closed");
+};
+
+model_context_protocol_server_instance.onclose = () => {
+    initiateGracefulServerShutdown("MCP Server instance reported connection closed");
+};
+
+// WHAT: Monitors standard input stream closure and end-of-file (EOF) events.
+// WHY:  When the parent application (IDE or desktop client) exits, the operating system closes the stdio pipe.
+//       By detecting the end of the standard input stream, we trigger a clean shutdown immediately.
+process.stdin.on("end", () => {
+    initiateGracefulServerShutdown("Parent process closed standard input stream (EOF encountered)");
+});
+
+process.stdin.on("close", () => {
+    initiateGracefulServerShutdown("Standard input stream closed by parent process");
+});
+
+// WHAT: Resumes standard input stream data flow.
+// WHY:  Ensures that EOF events ('end' and 'close') are properly emitted even if the MCP transport finishes reading.
+process.stdin.resume();
+
+// WHAT: Listens for operating system process termination signals.
+// WHY:  Ensures that when a user presses Ctrl+C, closes the terminal window, or sends a termination request,
+//       the server performs an orderly cleanup rather than leaving port 8787 bound.
+const operating_system_termination_signals_list = ["SIGINT", "SIGTERM", "SIGBREAK", "SIGHUP"];
+
+for (const operating_system_signal_name of operating_system_termination_signals_list) {
+    process.on(operating_system_signal_name, () => {
+        initiateGracefulServerShutdown(`Received operating system signal: ${operating_system_signal_name}`);
+    });
+}
+
+// WHAT: Establishes a parent process liveness watchdog.
+// WHY:  On Windows, if a parent IDE process is forcibly terminated or crashes unexpectedly without closing stdio pipes,
+//       the child process could theoretically be orphaned. This heartbeat periodically verifies that the parent PID is alive.
+const parent_process_identification_number = process.ppid;
+
+if (parent_process_identification_number && parent_process_identification_number > 1) {
+    const parent_process_liveness_check_interval_milliseconds = 2500;
+    const parent_process_watchdog_interval_handle = setInterval(() => {
+        try {
+            // WHAT: Sending signal 0 performs an existence check without actually killing the target process.
+            // WHY:  Allows us to confirm the parent IDE is still running in the operating system task list.
+            process.kill(parent_process_identification_number, 0);
+        } catch (parent_process_lookup_error) {
+            // WHAT: Detects if the error code indicates the process no longer exists.
+            // WHY:  If the parent PID vanished, we must shut down to avoid remaining as a zombie process.
+            if (parent_process_lookup_error.code === "ESRCH") {
+                initiateGracefulServerShutdown(
+                    `Parent process (PID ${parent_process_identification_number}) has terminated or exited`
+                );
+            }
+        }
+    }, parent_process_liveness_check_interval_milliseconds);
+
+    if (typeof parent_process_watchdog_interval_handle.unref === "function") {
+        parent_process_watchdog_interval_handle.unref();
+    }
+}
