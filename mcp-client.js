@@ -800,6 +800,358 @@
         return execution_result_payload;
     }
 
+    // WHAT: Defines the complete list of 11 WebMCP tools matching the W3C WebML/WebMCP specification.
+    // WHY:  Exposes full synthesizer, sequencer, and effects control directly to in-browser AI agents
+    //       without requiring an intermediate Node.js server or open network ports.
+    const web_model_context_protocol_tool_declarations_list = [
+        {
+            name: "set_303_pattern",
+            description:
+                "Program the 16-step pattern. Accepts compact tracker string ('C3:a - G3:s C4:as+') or 16 step objects/strings. Modifiers: :a (accent), :s (slide), :t (tie), :g (ghost), :+ / :- (octave). '-' or '.' is rest.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    pattern: {
+                        type: "string",
+                        description:
+                            "Compact tracker string of 16 steps (e.g. 'C3:a - G3:s C4:as+ - F3 F#3:s G3:as - A#3:a G3:g C4:as+ C3 - D#3:s F3:a').",
+                    },
+                    steps: {
+                        type: "array",
+                        description:
+                            "Array of 16 step objects (with note, octave, slide, accent, tie, ghost) or token strings.",
+                        items: {
+                            type: ["object", "string"],
+                        },
+                    },
+                },
+            },
+        },
+        {
+            name: "batch_set_params",
+            description:
+                "Atomically set multiple synth and pedal parameters in one request. Example: {'303': {'cutoff': 0.6, 'resonance': 0.8}, 'pedals': {'overdrive:enabled': true, 'overdrive:gain': 0.7}}.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    parameters: {
+                        type: "object",
+                        description:
+                            "Map of instrument/pedal names ('303', 'moog', 'monotron', 'sampler', 'pedals') to parameter objects.",
+                    },
+                },
+                required: ["parameters"],
+            },
+        },
+        {
+            name: "save_pattern_to_slot",
+            description: "Save active grid to memory slot (1-9).",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    slot_number: {
+                        type: "integer",
+                        minimum: 1,
+                        maximum: 9,
+                        description: "Memory slot number 1-9.",
+                    },
+                },
+                required: ["slot_number"],
+            },
+        },
+        {
+            name: "recall_pattern_from_slot",
+            description: "Recall pattern from memory slot (1-9). Queues on next bar if playing.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    slot_number: {
+                        type: "integer",
+                        minimum: 1,
+                        maximum: 9,
+                        description: "Memory slot number 1-9.",
+                    },
+                },
+                required: ["slot_number"],
+            },
+        },
+        {
+            name: "set_instrument_param",
+            description:
+                "Set a single synth or effect parameter across '303', 'moog', 'monotron', 'sampler', or 'pedals'. For multiple params, use batch_set_params instead.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    instrument_name: {
+                        type: "string",
+                        enum: ["303", "moog", "monotron", "sampler", "pedals", "pedal"],
+                        description: "Target instrument or effect pedals.",
+                    },
+                    param_name: {
+                        type: "string",
+                        description:
+                            "Parameter name (e.g. 'cutoff', 'resonance', 'wave', 'overdrive:gain').",
+                    },
+                    param_value: {
+                        type: ["number", "string", "boolean"],
+                        description:
+                            "Target value (normalized 0.0-1.0, string, or boolean).",
+                    },
+                },
+                required: ["instrument_name", "param_name", "param_value"],
+            },
+        },
+        {
+            name: "set_mode",
+            description:
+                "Switch workstation mode between 'acid' (16 steps, 120 BPM) and 'dnb' (32 steps, 172 BPM).",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    mode_name: {
+                        type: "string",
+                        enum: ["acid", "dnb", "drum_and_bass"],
+                        description: "Mode identifier ('acid' or 'dnb').",
+                    },
+                },
+                required: ["mode_name"],
+            },
+        },
+        {
+            name: "set_pattern_sequence",
+            description:
+                "Program KO-40 sampler pattern arrangement with pattern index, repeat, transpose, mute, and bpm overrides.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    sequence_entries: {
+                        type: "array",
+                        description:
+                            "Array of sequence objects: [{ pattern: 1, repeat: 2, transpose: 0, mute: false, bpm: 120 }].",
+                        items: {
+                            type: "object",
+                            properties: {
+                                pattern: { type: "integer", minimum: 1, maximum: 16 },
+                                repeat: { type: "integer", minimum: 1, default: 1 },
+                                transpose: { type: "integer", default: 0 },
+                                mute: { type: "boolean", default: false },
+                                bpm: { type: "integer", minimum: 60, maximum: 200 },
+                            },
+                            required: ["pattern"],
+                        },
+                    },
+                },
+                required: ["sequence_entries"],
+            },
+        },
+        {
+            name: "transport_control",
+            description:
+                "Control playback transport ('play', 'stop', 'toggle') and optional BPM tempo.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    action: {
+                        type: "string",
+                        enum: ["play", "stop", "toggle"],
+                        description: "Playback transport command.",
+                    },
+                    bpm: {
+                        type: "number",
+                        minimum: 60,
+                        maximum: 200,
+                        description: "Master tempo in BPM (60-200).",
+                    },
+                },
+            },
+        },
+        {
+            name: "run_pedal_jam",
+            description:
+                "Launch automated 60s live jam sweeping pedals (overdrive, phaser, delay, chorus, reverb, distortion) and synth filters.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    duration_seconds: {
+                        type: "integer",
+                        minimum: 10,
+                        maximum: 120,
+                        default: 60,
+                        description: "Duration in seconds.",
+                    },
+                },
+            },
+        },
+        {
+            name: "play_monotron",
+            description:
+                "Perform live solo on Korg Monotron analog ribbon synth with filter sweeps and ribbon slides.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    duration_seconds: {
+                        type: "integer",
+                        minimum: 5,
+                        maximum: 60,
+                        default: 20,
+                        description: "Duration in seconds.",
+                    },
+                    model: {
+                        type: "string",
+                        enum: ["duo", "delay", "classic"],
+                        default: "duo",
+                        description: "Monotron model ('duo' or 'delay').",
+                    },
+                },
+            },
+        },
+        {
+            name: "get_current_state",
+            description:
+                "Read operational state. Defaults to a token-efficient 1-line summary (~25 tokens). Use scope for targeted data or 'all' for raw JSON.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    scope: {
+                        type: "string",
+                        enum: ["summary", "303", "transport", "moog", "sampler", "all"],
+                        default: "summary",
+                        description:
+                            "Detail level: 'summary' (default, 1-line text status), '303', 'transport', 'moog', 'sampler', or 'all'.",
+                    },
+                },
+            },
+        },
+    ];
+
+    // WHAT: Normalizes an execution outcome into standard Model Context Protocol content blocks.
+    // WHY:  Ensures that browser agents receive structured text or error payloads matching the MCP specification.
+    function formatExecutionResultForWebModelContextProtocol(raw_execution_result_payload) {
+        // WHAT: Checks whether the payload is already well-formed with a content array.
+        // WHY:  If the result already conforms to MCP specifications, return it untouched.
+        if (
+            raw_execution_result_payload &&
+            typeof raw_execution_result_payload === "object" &&
+            Array.isArray(raw_execution_result_payload.content)
+        ) {
+            return raw_execution_result_payload;
+        }
+
+        // WHAT: Handles void or null results.
+        // WHY:  An empty payload denotes successful execution with no output text.
+        if (raw_execution_result_payload === undefined || raw_execution_result_payload === null) {
+            return { content: [] };
+        }
+
+        // WHAT: Catches explicit failure flags or error strings.
+        // WHY:  Any execution failure must be signaled to the agent via isError: true so it knows the command failed.
+        if (raw_execution_result_payload.ok === false || raw_execution_result_payload.error) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: String(raw_execution_result_payload.error || "Operation failed."),
+                    },
+                ],
+                isError: true,
+            };
+        }
+
+        // WHAT: Handles compact single-line summary responses.
+        // WHY:  Returns the concise status string directly in a single text block for optimal token economy.
+        if (typeof raw_execution_result_payload.summary === "string") {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: raw_execution_result_payload.summary,
+                    },
+                ],
+            };
+        }
+
+        // WHAT: Handles raw string responses.
+        // WHY:  Maps strings directly to a single text content entry.
+        if (typeof raw_execution_result_payload === "string") {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: raw_execution_result_payload,
+                    },
+                ],
+            };
+        }
+
+        // WHAT: Serializes all remaining structured object or array payloads.
+        // WHY:  Enables agents to inspect formatted JSON data without serialization errors.
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(raw_execution_result_payload, null, 2),
+                },
+            ],
+        };
+    }
+
+    // WHAT: Registers all TB-303-vibe tools into the browser's native WebMCP modelContext interface if present.
+    // WHY:  Enables in-browser AI assistants (Chrome Page Agents, AI extensions, browser subagents) to discover
+    //       and actuate synthesizer controls directly in memory without needing Node.js or port 8787.
+    function initializeNativeWebModelContextProtocolRegistration() {
+        const detected_model_context_host_object =
+            (typeof document !== "undefined" && document.modelContext) ||
+            (typeof window !== "undefined" && window.modelContext) ||
+            (typeof navigator !== "undefined" && navigator.modelContext) ||
+            null;
+
+        if (
+            !detected_model_context_host_object ||
+            typeof detected_model_context_host_object.registerTool !== "function"
+        ) {
+            // WHAT: WebMCP API is not present in the current browser runtime.
+            // WHY:  Silent exit adheres to the graceful degradation protocol; no console clutter on unflagged browsers.
+            return;
+        }
+
+        console.log(
+            "WebMCP detected: Registering TB-303-vibe tools directly into document.modelContext..."
+        );
+
+        for (const individual_tool_declaration_object of web_model_context_protocol_tool_declarations_list) {
+            try {
+                detected_model_context_host_object.registerTool({
+                    name: individual_tool_declaration_object.name,
+                    description: individual_tool_declaration_object.description,
+                    inputSchema: individual_tool_declaration_object.inputSchema,
+                    async execute(incoming_invocation_arguments_object) {
+                        try {
+                            const raw_tool_execution_outcome = executeIncomingModelContextProtocolCommand(
+                                individual_tool_declaration_object.name,
+                                incoming_invocation_arguments_object || {}
+                            );
+                            return formatExecutionResultForWebModelContextProtocol(raw_tool_execution_outcome);
+                        } catch (tool_execution_exception) {
+                            const error_message_text =
+                                tool_execution_exception instanceof Error
+                                    ? tool_execution_exception.message
+                                    : String(tool_execution_exception);
+                            return {
+                                content: [{ type: "text", text: error_message_text }],
+                                isError: true,
+                            };
+                        }
+                    },
+                });
+            } catch (individual_tool_registration_error) {
+                console.error(
+                    `Failed to register WebMCP tool '${individual_tool_declaration_object.name}':`,
+                    individual_tool_registration_error
+                );
+            }
+        }
+    }
+
     // WHAT: Establishes a WebSocket connection to the local Node MCP server.
     // WHY:  Provides the communication pipe between the browser runtime and the MCP server.
     function initializeModelContextProtocolBrowserBridge() {
@@ -855,11 +1207,26 @@
         }
     }
 
+    // WHAT: Master initialization function coordinating both the local Node bridge and in-browser WebMCP registration.
+    // WHY:  Ensures both paths (Desktop IDEs and in-browser agents) are initialized as soon as audio engines are mounted.
+    function initializeStudioModelContextProtocolServices() {
+        initializeNativeWebModelContextProtocolRegistration();
+        initializeModelContextProtocolBrowserBridge();
+    }
+
+    // WHAT: Exposes the tool declarations and WebMCP registration method globally.
+    // WHY:  Permits developer inspection, automated headless testing, and synthetic polyfill simulation in the browser console.
+    window.TB303WebMCPBridge = {
+        toolDeclarations: web_model_context_protocol_tool_declarations_list,
+        registerTools: initializeNativeWebModelContextProtocolRegistration,
+        formatResult: formatExecutionResultForWebModelContextProtocol,
+    };
+
     // WHAT: Initializes the bridge once the DOM is fully constructed and instruments are mounted.
     // WHY:  Guarantees that global engines (AudioEngine, SequencerEngine, etc.) exist before accepting commands.
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initializeModelContextProtocolBrowserBridge);
+        document.addEventListener("DOMContentLoaded", initializeStudioModelContextProtocolServices);
     } else {
-        initializeModelContextProtocolBrowserBridge();
+        initializeStudioModelContextProtocolServices();
     }
 })();

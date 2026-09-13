@@ -4,43 +4,48 @@ This document explains the Model Context Protocol (MCP) architecture implemented
 
 ---
 
-## 1. Architecture Overview
+## 1. Architecture Overview (Dual-Stack MCP)
 
-Tone.js and the Web Audio API require a web browser environment to synthesize and output audio. However, MCP clients (like Claude Desktop or Antigravity IDE) communicate with MCP servers running in a Node.js process over standard input/output (`stdio`).
-
-To bridge this gap cleanly, TB-303-vibe uses a lightweight **stdio-to-WebSocket bridge**:
+Tone.js and the Web Audio API require a web browser environment to synthesize and output audio. TB-303-vibe implements a **Dual-Stack MCP architecture** supporting both desktop external AI clients and native in-browser AI agents:
 
 ```
-┌───────────────────────────────┐
-│         AI Assistant          │
-│ (Claude / Antigravity / LLM)  │
-└──────────────┬────────────────┘
-               │  stdio (JSON-RPC)
-               ▼
-┌───────────────────────────────┐
-│         mcp-server.js         │  <-- Node.js process
-│ (Model Context Protocol Host) │
-└──────────────┬────────────────┘
-               │  ws://localhost:8787
-               ▼
-┌───────────────────────────────┐
-│         mcp-client.js         │  <-- Browser client script
-│    (index.html in Firefox)    │
-│  Tone.js / AudioEngines / DOM │
-└───────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│                  Dual-Stack MCP Targets                   │
+├─────────────────────────────┬─────────────────────────────┤
+│  Desktop AI Clients         │  In-Browser AI Agents       │
+│  (Claude, Antigravity, IDE) │  (Chrome Page Agents, Ext)  │
+└──────────────┬──────────────┴──────────────┬──────────────┘
+               │ stdio (JSON-RPC)            │ Native WebMCP
+               ▼                             ▼
+┌─────────────────────────────┐   document.modelContext.registerTool()
+│        mcp-server.js        │              │
+│    (Node.js Host Process)   │              │
+└──────────────┬──────────────┘              │
+               │ ws://localhost:8787         │
+               ▼                             │
+┌────────────────────────────────────────────▼──────────────┐
+│                       mcp-client.js                       │
+│                  (Browser Web Audio Tab)                  │
+│       Tone.js / Synthesizers / Sequencer / PedalBoard     │
+└───────────────────────────────────────────────────────────┘
 ```
 
-1. **Node Server ([`mcp-server.js`](file:///c:/Users/Desktop-Dev/Desktop/303/mcp-server.js))**:
-   * Communicates with the AI agent over `stdio` using `@modelcontextprotocol/sdk`.
-   * Listens for browser WebSocket connections on `ws://localhost:8787`.
-   * Correlates incoming tool requests and outgoing browser responses using unique `request_id` values with a 5-second timeout safety mechanism.
-2. **Browser Client ([`mcp-client.js`](file:///c:/Users/Desktop-Dev/Desktop/303/mcp-client.js))**:
-   * Automatically connects to `ws://localhost:8787` on page load.
+1. **Desktop Agent Bridge ([`mcp-server.js`](file:///c:/Users/Desktop-Dev/Desktop/303/mcp-server.js))**:
+   * Communicates with desktop AI clients (Antigravity IDE, Claude Desktop, Cursor) over `stdio` using `@modelcontextprotocol/sdk`.
+   * Relays JSON-RPC tool calls to the browser over `ws://localhost:8787`.
+   * Correlates tool requests and browser responses using unique `request_id` values with a 5-second timeout safety mechanism.
+
+2. **In-Browser WebMCP ([`mcp-client.js`](file:///c:/Users/Desktop-Dev/Desktop/303/mcp-client.js))**:
+   * Adheres to the W3C WebMachineLearning [WebMCP specification](https://github.com/webmachinelearning/webmcp) (and Google Chrome Labs' [`use-webmcp-tool`](https://github.com/GoogleChromeLabs/use-webmcp-tool)).
+   * Automatically detects and registers all 11 workstation tools into **`document.modelContext.registerTool()`** if supported by the browser runtime (no Node server or network ports needed for in-browser agents!).
+   * Exposes inspectable tool declarations and helpers on [`window.TB303WebMCPBridge`](file:///c:/Users/Desktop-Dev/Desktop/303/mcp-client.js).
+
+3. **Engine Dispatch & Visual Synchrony**:
    * Dispatches incoming commands to live singleton engines: [`window.SequencerEngine`](file:///c:/Users/Desktop-Dev/Desktop/303/sequencer.js#L329), [`window.AudioEngine`](file:///c:/Users/Desktop-Dev/Desktop/303/audio.js#L177), [`window.GrandmotherEngine`](file:///c:/Users/Desktop-Dev/Desktop/303/grandmother-audio.js#L344), [`window.MonotronAudio`](file:///c:/Users/Desktop-Dev/Desktop/303/monotron-audio.js#L249), [`window.SamplerEngine`](file:///c:/Users/Desktop-Dev/Desktop/303/sampler.js#L488), [`window.PedalBoard`](file:///c:/Users/Desktop-Dev/Desktop/303/core/pedalboard.js), [`window.Mode`](file:///c:/Users/Desktop-Dev/Desktop/303/core/mode.js#L95), and [`window.Clock`](file:///c:/Users/Desktop-Dev/Desktop/303/core/clock.js#L95).
    * Animates DOM controls (piano-roll grid cells, sliders, checkboxes, and the ribbon indicator) in real time.
-3. **GitHub Pages Safety**:
-   * The client bridge handles failed connection attempts silently.
-   * If the project is visited on GitHub Pages without a local MCP server running, the script sits dormant without console spam, popups, or audio interruptions.
+
+4. **Graceful Offline Degradation**:
+   * Both paths degrade silently if inactive: if `ws://localhost:8787` is offline (e.g. deployed on GitHub Pages), the WebSocket reconnects quietly without spamming errors. If `document.modelContext` is absent in older or unflagged browsers, WebMCP registration exits silently.
 
 ---
 
